@@ -1,9 +1,13 @@
 package org.rabix.engine.processor.handler.impl;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.rabix.bindings.BindingException;
+import org.rabix.bindings.model.FileValue;
 import org.rabix.bindings.model.LinkMerge;
 import org.rabix.bindings.model.ScatterMethod;
 import org.rabix.bindings.model.dag.DAGContainer;
@@ -11,6 +15,7 @@ import org.rabix.bindings.model.dag.DAGLinkPort;
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.bindings.model.dag.DAGNode;
 import org.rabix.common.helper.InternalSchemaHelper;
+import org.rabix.engine.IntermediaryFilesHelper;
 import org.rabix.engine.db.DAGNodeDB;
 import org.rabix.engine.event.Event;
 import org.rabix.engine.event.impl.InputUpdateEvent;
@@ -23,6 +28,7 @@ import org.rabix.engine.model.scatter.ScatterStrategy;
 import org.rabix.engine.model.scatter.ScatterStrategyFactory;
 import org.rabix.engine.processor.EventProcessor;
 import org.rabix.engine.processor.handler.EventHandlerException;
+import org.rabix.engine.service.IntermediaryFilesService;
 import org.rabix.engine.service.JobRecordService;
 import org.rabix.engine.service.JobRecordService.JobState;
 import org.rabix.engine.service.LinkRecordService;
@@ -39,15 +45,19 @@ public class ScatterHandler {
   private final LinkRecordService linkRecordService;
   private final VariableRecordService variableRecordService;
   private final ScatterStrategyFactory scatterStrategyFactory;
+  private final IntermediaryFilesService intermediaryFilesService;
+  private final boolean detectUnusedFiles;
   
   @Inject
-  public ScatterHandler(final DAGNodeDB dagNodeDB, final JobRecordService jobRecordService, final VariableRecordService variableRecordService, final LinkRecordService linkRecordService, final EventProcessor eventProcessor, final ScatterStrategyFactory scatterStrategyFactory) {
+  public ScatterHandler(final DAGNodeDB dagNodeDB, final JobRecordService jobRecordService, final VariableRecordService variableRecordService, final LinkRecordService linkRecordService, final EventProcessor eventProcessor, final ScatterStrategyFactory scatterStrategyFactory, final IntermediaryFilesService intermediaryFilesService) {
     this.dagNodeDB = dagNodeDB;
     this.eventProcessor = eventProcessor;
     this.jobRecordService = jobRecordService;
     this.linkRecordService = linkRecordService;
     this.variableRecordService = variableRecordService;
     this.scatterStrategyFactory = scatterStrategyFactory;
+    this.intermediaryFilesService = intermediaryFilesService;
+    this.detectUnusedFiles = true;
   }
   
   /**
@@ -98,6 +108,7 @@ public class ScatterHandler {
     for (int i = 0; i < values.size(); i++) {
       createScatteredJobs(job, portId, values.get(i), node, values.size(), usePositionFromEvent ? position : i + 1);
     }
+    
   }
   
   public JobRecord createJobRecord(String id, String parentId, DAGNode node, boolean isScattered, String contextId) {
@@ -115,6 +126,16 @@ public class ScatterHandler {
   }
   
   private void createScatteredJobs(JobRecord job, String port, Object value, DAGNode node, Integer numberOfScattered, Integer position) throws EventHandlerException {
+    
+    if(detectUnusedFiles) {
+      Map<FileValue, Integer> files = IntermediaryFilesHelper.getInputFilesForScatter(job, variableRecordService, numberOfScattered, port);
+      for(Iterator<Map.Entry<FileValue, Integer>> it = files.entrySet().iterator(); it.hasNext();) {
+        Entry<FileValue, Integer> entry = it.next();
+        
+        intermediaryFilesService.addOrIncrement(entry.getKey(), entry.getValue());
+      }
+    }
+    
     ScatterStrategy scatterStrategy = job.getScatterStrategy();
     scatterStrategy.enable(port, value, position);
     
