@@ -52,12 +52,12 @@ public class MultiEventProcessorImpl implements EventProcessor {
 
   @Override
   public void send(Event event) throws EventHandlerException {
-    getEventProcessor(event.getContextId()).send(event);
+    getEventProcessor(event.getRootId()).send(event);
   }
 
   @Override
   public void addToQueue(Event event) {
-    getEventProcessor(event.getContextId()).addToQueue(event);
+    getEventProcessor(event.getRootId()).addToQueue(event);
   }
   
   @Override

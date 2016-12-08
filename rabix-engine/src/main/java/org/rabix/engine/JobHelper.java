@@ -21,7 +21,7 @@ import org.rabix.bindings.model.dag.DAGNode;
 import org.rabix.common.helper.CloneHelper;
 import org.rabix.common.helper.InternalSchemaHelper;
 import org.rabix.engine.db.DAGNodeDB;
-import org.rabix.engine.model.ContextRecord;
+import org.rabix.engine.model.RootRecord;
 import org.rabix.engine.model.JobRecord;
 import org.rabix.engine.model.JobRecord.PortCounter;
 import org.rabix.engine.model.LinkRecord;
@@ -95,7 +95,7 @@ public class JobHelper {
       preprocesedInputs.put(inputVariable.getPortId(), value);
     }
     
-    ContextRecord contextRecord = contextRecordService.find(job.getRootId());
+    RootRecord contextRecord = contextRecordService.find(job.getRootId());
     String encodedApp = URIHelper.createDataURI(node.getApp().serialize());
     
     Set<String> visiblePorts = findVisiblePorts(job, jobRecordService, linkRecordService, variableRecordService);
@@ -148,7 +148,7 @@ public class JobHelper {
       inputs.put(inputVariable.getPortId(), value);
     }
     
-    ContextRecord contextRecord = contextRecordService.find(job.getRootId());
+    RootRecord contextRecord = contextRecordService.find(job.getRootId());
     String encodedApp = URIHelper.createDataURI(node.getApp().serialize());
     return new Job(job.getExternalId(), job.getParentId(), job.getRootId(), job.getId(), encodedApp, status, null, inputs, outputs, contextRecord.getConfig(), null, null);
   }

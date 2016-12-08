@@ -131,7 +131,6 @@ public class ScatterHandler {
       Map<FileValue, Integer> files = IntermediaryFilesHelper.getInputFilesForScatter(job, variableRecordService, numberOfScattered, port);
       for(Iterator<Map.Entry<FileValue, Integer>> it = files.entrySet().iterator(); it.hasNext();) {
         Entry<FileValue, Integer> entry = it.next();
-        
         intermediaryFilesService.addOrIncrement(entry.getKey(), entry.getValue());
       }
     }

@@ -1,5 +1,7 @@
 package org.rabix.engine.status.impl;
 
+import java.util.Set;
+
 import org.rabix.bindings.model.Job;
 import org.rabix.engine.status.EngineStatusCallback;
 import org.rabix.engine.status.EngineStatusCallbackException;
@@ -33,6 +35,12 @@ public class NoOpEngineStatusCallback implements EngineStatusCallback {
   @Override
   public void onJobRootFailed(Job rootJob) throws EngineStatusCallbackException {
     logger.debug("onJobFailed(jobId={})", rootJob.getId());
+  }
+
+  @Override
+  public void onUnusedFilesDetected(Set<String> paths) throws EngineStatusCallbackException {
+    logger.debug("onUnusedFilesDetected", paths);
+    
   }
 
 }

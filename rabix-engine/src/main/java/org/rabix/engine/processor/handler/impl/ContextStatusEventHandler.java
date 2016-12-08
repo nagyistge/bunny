@@ -1,14 +1,14 @@
 package org.rabix.engine.processor.handler.impl;
 
-import org.rabix.engine.event.impl.ContextStatusEvent;
-import org.rabix.engine.model.ContextRecord;
+import org.rabix.engine.event.impl.RootStatusEvent;
+import org.rabix.engine.model.RootRecord;
 import org.rabix.engine.processor.handler.EventHandler;
 import org.rabix.engine.processor.handler.EventHandlerException;
 import org.rabix.engine.service.ContextRecordService;
 
 import com.google.inject.Inject;
 
-public class ContextStatusEventHandler implements EventHandler<ContextStatusEvent> {
+public class ContextStatusEventHandler implements EventHandler<RootStatusEvent> {
 
   private final ContextRecordService contextRecordService;
 
@@ -18,8 +18,8 @@ public class ContextStatusEventHandler implements EventHandler<ContextStatusEven
   }
   
   @Override
-  public void handle(ContextStatusEvent event) throws EventHandlerException {
-    ContextRecord contextRecord = contextRecordService.find(event.getContextId());
+  public void handle(RootStatusEvent event) throws EventHandlerException {
+    RootRecord contextRecord = contextRecordService.find(event.getRootId());
     contextRecord.setStatus(event.getStatus());
     contextRecordService.update(contextRecord);
   }

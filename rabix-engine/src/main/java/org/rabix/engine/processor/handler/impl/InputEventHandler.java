@@ -50,10 +50,10 @@ public class InputEventHandler implements EventHandler<InputUpdateEvent> {
   
   @Override
   public void handle(InputUpdateEvent event) throws EventHandlerException {
-    JobRecord job = jobService.find(event.getJobId(), event.getContextId());
-    VariableRecord variable = variableService.find(event.getJobId(), event.getPortId(), LinkPortType.INPUT, event.getContextId());
+    JobRecord job = jobService.find(event.getJobId(), event.getRootId());
+    VariableRecord variable = variableService.find(event.getJobId(), event.getPortId(), LinkPortType.INPUT, event.getRootId());
 
-    DAGNode node = nodeDB.get(InternalSchemaHelper.normalizeId(job.getId()), event.getContextId());
+    DAGNode node = nodeDB.get(InternalSchemaHelper.normalizeId(job.getId()), event.getRootId());
 
     if (event.isLookAhead()) {
       if (job.isBlocking() || (job.getInputPortIncoming(event.getPortId()) > 1)) {
@@ -92,7 +92,7 @@ public class InputEventHandler implements EventHandler<InputUpdateEvent> {
     }
 
     if (job.isReady()) {
-      JobStatusEvent jobStatusEvent = new JobStatusEvent(job.getId(), event.getContextId(), JobState.READY, null);
+      JobStatusEvent jobStatusEvent = new JobStatusEvent(job.getId(), event.getRootId(), JobState.READY, null);
       eventProcessor.send(jobStatusEvent);
     }
     update(job, variable);
@@ -107,13 +107,13 @@ public class InputEventHandler implements EventHandler<InputUpdateEvent> {
    * Send events from scatter wrapper to scattered jobs
    */
   private void sendValuesToScatteredJobs(JobRecord job, VariableRecord variable, InputUpdateEvent event) throws EventHandlerException {
-    List<LinkRecord> links = linkService.findBySourceAndDestinationType(job.getId(), event.getPortId(), LinkPortType.INPUT, event.getContextId());
+    List<LinkRecord> links = linkService.findBySourceAndDestinationType(job.getId(), event.getPortId(), LinkPortType.INPUT, event.getRootId());
 
     List<Event> events = new ArrayList<>();
     for (LinkRecord link : links) {
-      VariableRecord destinationVariable = variableService.find(link.getDestinationJobId(), link.getDestinationJobPort(), LinkPortType.INPUT, event.getContextId());
+      VariableRecord destinationVariable = variableService.find(link.getDestinationJobId(), link.getDestinationJobPort(), LinkPortType.INPUT, event.getRootId());
 
-      Event updateInputEvent = new InputUpdateEvent(event.getContextId(), destinationVariable.getJobId(), destinationVariable.getPortId(), variable.getValue(), event.getPosition());
+      Event updateInputEvent = new InputUpdateEvent(event.getRootId(), destinationVariable.getJobId(), destinationVariable.getPortId(), variable.getValue(), event.getPosition());
       events.add(updateInputEvent);
     }
     for (Event subevent : events) {

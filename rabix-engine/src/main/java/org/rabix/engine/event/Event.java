@@ -18,5 +18,5 @@ public interface Event {
    */
   EventType getType();
   
-  String getContextId();
+  String getRootId();
 }

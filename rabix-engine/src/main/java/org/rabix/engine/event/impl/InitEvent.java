@@ -34,11 +34,6 @@ public class InitEvent implements Event {
     return rootId;
   }
   
-  @Override
-  public String getContextId() {
-    return rootId;
-  }
-  
   public Map<String, Object> getConfig() {
     return config;
   }

@@ -13,7 +13,7 @@ public class VariableRecordService {
   private ConcurrentMap<String, List<VariableRecord>> variableRecordsPerContext = new ConcurrentHashMap<String, List<VariableRecord>>();
 
   public void create(VariableRecord variableRecord) {
-    getVariableRecords(variableRecord.getContextId()).add(variableRecord);
+    getVariableRecords(variableRecord.getRootId()).add(variableRecord);
   }
   
   public void delete(String rootId) {
@@ -21,8 +21,8 @@ public class VariableRecordService {
   }
 
   public void update(VariableRecord variableRecord) {
-    for (VariableRecord vr : getVariableRecords(variableRecord.getContextId())) {
-      if (vr.getJobId().equals(variableRecord.getJobId()) && vr.getPortId().equals(variableRecord.getPortId()) && vr.getType().equals(variableRecord.getType()) && vr.getContextId().equals(variableRecord.getContextId())) {
+    for (VariableRecord vr : getVariableRecords(variableRecord.getRootId())) {
+      if (vr.getJobId().equals(variableRecord.getJobId()) && vr.getPortId().equals(variableRecord.getPortId()) && vr.getType().equals(variableRecord.getType()) && vr.getRootId().equals(variableRecord.getRootId())) {
         vr.setValue(variableRecord.getValue());
         return;
       }
@@ -32,7 +32,7 @@ public class VariableRecordService {
   public List<VariableRecord> find(String jobId, LinkPortType type, String contextId) {
     List<VariableRecord> result = new ArrayList<>();
     for (VariableRecord vr : getVariableRecords(contextId)) {
-      if (vr.getJobId().equals(jobId) && vr.getType().equals(type) && vr.getContextId().equals(contextId)) {
+      if (vr.getJobId().equals(jobId) && vr.getType().equals(type) && vr.getRootId().equals(contextId)) {
         result.add(vr);
       }
     }
@@ -42,7 +42,7 @@ public class VariableRecordService {
   public List<VariableRecord> find(String jobId, String portId, String contextId) {
     List<VariableRecord> result = new ArrayList<>();
     for (VariableRecord vr : getVariableRecords(contextId)) {
-      if (vr.getJobId().equals(jobId) && vr.getPortId().equals(portId) && vr.getContextId().equals(contextId)) {
+      if (vr.getJobId().equals(jobId) && vr.getPortId().equals(portId) && vr.getRootId().equals(contextId)) {
         result.add(vr);
       }
     }
@@ -51,7 +51,7 @@ public class VariableRecordService {
 
   public VariableRecord find(String jobId, String portId, LinkPortType type, String contextId) {
     for (VariableRecord vr : getVariableRecords(contextId)) {
-      if (vr.getJobId().equals(jobId) && vr.getPortId().equals(portId) && vr.getType().equals(type) && vr.getContextId().equals(contextId)) {
+      if (vr.getJobId().equals(jobId) && vr.getPortId().equals(portId) && vr.getType().equals(type) && vr.getRootId().equals(contextId)) {
         return vr;
       }
     }
@@ -61,7 +61,7 @@ public class VariableRecordService {
   public List<VariableRecord> findByJobId(String jobId, LinkPortType type, String contextId) {
     List<VariableRecord> result = new ArrayList<>();
     for (VariableRecord vr : getVariableRecords(contextId)) {
-      if (vr.getJobId().equals(jobId) && vr.getType().equals(type) && vr.getContextId().equals(contextId)) {
+      if (vr.getJobId().equals(jobId) && vr.getType().equals(type) && vr.getRootId().equals(contextId)) {
         result.add(vr);
       }
     }

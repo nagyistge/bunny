@@ -1,5 +1,6 @@
 package org.rabix.engine.rest.service.impl;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -316,6 +317,15 @@ public class JobServiceImpl implements JobService {
     @Override
     public void onJobRootPartiallyCompleted(Job rootJob) throws EngineStatusCallbackException {
       logger.info("Root {} is partially completed.", rootJob.getId());
+    }
+
+    @Override
+    public void onUnusedFilesDetected(Set<String> paths) throws EngineStatusCallbackException {
+      for(String path: paths) {
+        File file = new File(path);
+        file.delete();
+      }
+      logger.info("Unused files" + paths);
     }
   }
   

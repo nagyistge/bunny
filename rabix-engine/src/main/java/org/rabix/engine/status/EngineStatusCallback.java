@@ -1,5 +1,7 @@
 package org.rabix.engine.status;
 
+import java.util.Set;
+
 import org.rabix.bindings.model.Job;
 
 public interface EngineStatusCallback {
@@ -13,5 +15,7 @@ public interface EngineStatusCallback {
   void onJobRootPartiallyCompleted(Job rootJob) throws EngineStatusCallbackException;
   
   void onJobRootFailed(Job rootJob) throws EngineStatusCallbackException;
+  
+  void onUnusedFilesDetected(Set<String> paths) throws EngineStatusCallbackException;
 
 }

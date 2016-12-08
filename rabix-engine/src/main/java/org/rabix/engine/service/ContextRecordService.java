@@ -3,18 +3,18 @@ package org.rabix.engine.service;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.rabix.engine.model.ContextRecord;
+import org.rabix.engine.model.RootRecord;
 
 public class ContextRecordService {
 
-  private List<ContextRecord> contextRecords = new ArrayList<>();
+  private List<RootRecord> contextRecords = new ArrayList<>();
   
-  public synchronized void create(ContextRecord contextRecord) {
+  public synchronized void create(RootRecord contextRecord) {
     contextRecords.add(contextRecord);
   }
   
-  public synchronized void update(ContextRecord context) {
-    for (ContextRecord c : contextRecords) {
+  public synchronized void update(RootRecord context) {
+    for (RootRecord c : contextRecords) {
       if (c.getId().equals(context.getId())) {
         c.setStatus(context.getStatus());
         return;
@@ -22,8 +22,8 @@ public class ContextRecordService {
     }
   }
   
-  public synchronized ContextRecord find(String id) {
-    for (ContextRecord contextRecord : contextRecords) {
+  public synchronized RootRecord find(String id) {
+    for (RootRecord contextRecord : contextRecords) {
       if (contextRecord.getId().equals(id)) {
         return contextRecord;
       }

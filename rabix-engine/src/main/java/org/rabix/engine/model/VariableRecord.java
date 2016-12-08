@@ -9,7 +9,7 @@ import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 
 public class VariableRecord {
 
-  private String contextId;
+  private String rootId;
 
   private String jobId;
   private String portId;
@@ -30,12 +30,12 @@ public class VariableRecord {
     this.portId = portId;
     this.type = type;
     this.value = value;
-    this.contextId = contextId;
+    this.rootId = contextId;
     this.linkMerge = linkMerge;
   }
 
-  public String getContextId() {
-    return contextId;
+  public String getRootId() {
+    return rootId;
   }
   
   public Object getTransform() {
@@ -182,7 +182,7 @@ public class VariableRecord {
 
   @Override
   public String toString() {
-    return "VariableRecord [contextId=" + contextId + ", jobId=" + jobId + ", portId=" + portId + ", type=" + type
+    return "VariableRecord [contextId=" + rootId + ", jobId=" + jobId + ", portId=" + portId + ", type=" + type
         + ", value=" + value + ", isWrapped=" + isWrapped + ", numberOfGlobals=" + numberOfGlobals + ", linkMerge=" + linkMerge + "]";
   }
 

@@ -3,13 +3,13 @@ package org.rabix.engine.service;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.rabix.bindings.model.FileValue;
 import org.rabix.common.logging.VerboseLogger;
+import org.rabix.engine.IntermediaryFilesHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,7 @@ public class IntermediaryFilesService {
   
   public synchronized void addOrIncrement(FileValue file, Integer usage) {
     Set<String> paths = new HashSet<String>();
-    extractPathsFromFileValue(paths, file);
+    IntermediaryFilesHelper.extractPathsFromFileValue(paths, file);
     
     for(String path: paths) {
       if(files.containsKey(path)) {
@@ -33,12 +33,12 @@ public class IntermediaryFilesService {
         files.put(path, usage);
       }
     }
-    dumpFiles();
+    // dumpFiles();
   }
   
   public synchronized void addOrSet(FileValue file, Integer usage) {
     Set<String> paths = new HashSet<String>();
-    extractPathsFromFileValue(paths, file);
+    IntermediaryFilesHelper.extractPathsFromFileValue(paths, file);
     
     for(String path: paths) {
       if(files.containsKey(path)) {
@@ -46,10 +46,9 @@ public class IntermediaryFilesService {
         files.put(path, usage);
       }
     }
-    dumpFiles();
   }
   
-  public synchronized Set<String> getUnusedFiles(Set<FileValue> exclude) {
+  public synchronized Set<String> getUnusedFiles() {
     Set<String> unusedFiles = new HashSet<String>();
     for(Iterator<Map.Entry<String, Integer>> it = files.entrySet().iterator(); it.hasNext();) {
       Entry<String, Integer> entry = it.next();
@@ -58,33 +57,16 @@ public class IntermediaryFilesService {
         it.remove();
       }
     }
-    Set<String> excludeFiles = new HashSet<String>();
-    for(FileValue file: exclude) {
-      extractPathsFromFileValue(excludeFiles, file);
-    }
-    unusedFiles.removeAll(excludeFiles);
     return unusedFiles;
   }
   
-  public synchronized void decrementFiles(Set<FileValue> checkFiles) {
-    Set<String> paths = new HashSet<String>();
-    for(FileValue file: checkFiles) {
-      extractPathsFromFileValue(paths, file);
-    }
-    for(String path: paths) {
+  public synchronized void decrementFiles(Set<String> checkFiles) {
+    for(String path: checkFiles) {
       files.put(path, files.get(path) - 1);
     }
-    dumpFiles();
   }
   
-  public void extractPathsFromFileValue(Set<String> paths, FileValue file) {
-    paths.add(file.getPath());
-    for(FileValue f: file.getSecondaryFiles()) {
-      extractPathsFromFileValue(paths, f);
-    }
-  }
-  
-  private void dumpFiles() {
+  public void dumpFiles() {
     VerboseLogger.log("Intermediary files table");
     for(Iterator<Map.Entry<String, Integer>> it = files.entrySet().iterator(); it.hasNext();) {
       Entry<String, Integer> entry = it.next();

@@ -18,7 +18,7 @@ public class JobRecordService {
     FAILED
   }
 
-  private ConcurrentMap<String, List<JobRecord>> jobRecordsPerContext = new ConcurrentHashMap<String, List<JobRecord>>();
+  private ConcurrentMap<String, List<JobRecord>> jobRecordsPerRootId = new ConcurrentHashMap<String, List<JobRecord>>();
 
   public static String generateUniqueId() {
     return UUID.randomUUID().toString();
@@ -29,7 +29,7 @@ public class JobRecordService {
   }
 
   public void delete(String rootId) {
-    jobRecordsPerContext.remove(rootId);
+    jobRecordsPerRootId.remove(rootId);
   }
   
   public void update(JobRecord jobRecord) {
@@ -47,25 +47,25 @@ public class JobRecordService {
     }
   }
   
-  public List<JobRecord> find(String contextId) {
-    return getJobRecords(contextId);
+  public List<JobRecord> find(String rootId) {
+    return getJobRecords(rootId);
   }
   
-  public List<JobRecord> findReady(String contextId) {
+  public List<JobRecord> findReady(String rootId) {
     List<JobRecord> result = new ArrayList<>();
     
-    for (JobRecord jr : getJobRecords(contextId)) {
-      if (jr.getState().equals(JobState.READY) && jr.getRootId().equals(contextId)) {
+    for (JobRecord jr : getJobRecords(rootId)) {
+      if (jr.getState().equals(JobState.READY) && jr.getRootId().equals(rootId)) {
         result.add(jr);
       }
     }
     return result;
   }
   
-  public List<JobRecord> findByParent(String parentId, String contextId) {
+  public List<JobRecord> findByParent(String parentId, String rootId) {
     List<JobRecord> result = new ArrayList<>();
 
-    for (JobRecord jr : getJobRecords(contextId)) {
+    for (JobRecord jr : getJobRecords(rootId)) {
       if (jr.getParentId() != null && jr.getParentId().equals(parentId)) {
         result.add(jr);
       }
@@ -73,29 +73,29 @@ public class JobRecordService {
     return result;
   }
   
-  public JobRecord find(String id, String contextId) {
-    for (JobRecord jr : getJobRecords(contextId)) {
-      if (jr.getId().equals(id) && jr.getRootId().equals(contextId)) {
+  public JobRecord find(String id, String rootId) {
+    for (JobRecord jr : getJobRecords(rootId)) {
+      if (jr.getId().equals(id) && jr.getRootId().equals(rootId)) {
         return jr;
       }
     }
     return null;
   }
   
-  public JobRecord findRoot(String contextId) {
-    for (JobRecord jr : getJobRecords(contextId)) {
-      if (jr.isMaster() && jr.getRootId().equals(contextId)) {
+  public JobRecord findRoot(String rootId) {
+    for (JobRecord jr : getJobRecords(rootId)) {
+      if (jr.isMaster() && jr.getRootId().equals(rootId)) {
         return jr;
       }
     }
     return null;
   }
   
-  private List<JobRecord> getJobRecords(String contextId) {
-    List<JobRecord> jobRecordList = jobRecordsPerContext.get(contextId);
+  private List<JobRecord> getJobRecords(String rootId) {
+    List<JobRecord> jobRecordList = jobRecordsPerRootId.get(rootId);
     if (jobRecordList == null) {
       jobRecordList = new ArrayList<>();
-      jobRecordsPerContext.put(contextId, jobRecordList);
+      jobRecordsPerRootId.put(rootId, jobRecordList);
     }
     return jobRecordList;
   }

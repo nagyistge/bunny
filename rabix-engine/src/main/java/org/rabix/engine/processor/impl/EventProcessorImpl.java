@@ -11,9 +11,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.rabix.engine.event.Event;
 import org.rabix.engine.event.Event.EventType;
-import org.rabix.engine.event.impl.ContextStatusEvent;
-import org.rabix.engine.model.ContextRecord;
-import org.rabix.engine.model.ContextRecord.ContextStatus;
+import org.rabix.engine.event.impl.RootStatusEvent;
+import org.rabix.engine.model.RootRecord;
+import org.rabix.engine.model.RootRecord.RootStatus;
 import org.rabix.engine.processor.EventProcessor;
 import org.rabix.engine.processor.dispatcher.EventDispatcher;
 import org.rabix.engine.processor.dispatcher.EventDispatcherFactory;
@@ -70,15 +70,15 @@ public class EventProcessorImpl implements EventProcessor {
               Thread.sleep(SLEEP);
               continue;
             }
-            ContextRecord context = contextRecordService.find(event.getContextId());
-            if (context != null && context.getStatus().equals(ContextStatus.FAILED)) {
+            RootRecord context = contextRecordService.find(event.getRootId());
+            if (context != null && context.getStatus().equals(RootStatus.FAILED)) {
               logger.info("Skip event {}. Context {} has been invalidated.", event, context.getId());
               continue;
             }
             running.set(true);
             handlerFactory.get(event.getType()).handle(event);
 
-            Integer iteration = iterations.get(event.getContextId());
+            Integer iteration = iterations.get(event.getRootId());
             if (iteration == null) {
               iteration = 0;
             }
@@ -86,16 +86,16 @@ public class EventProcessorImpl implements EventProcessor {
             iteration++;
             if (iterationCallbacks != null) {
               for (IterationCallback callback : iterationCallbacks) {
-                callback.call(EventProcessorImpl.this, event.getContextId(), iteration);
+                callback.call(EventProcessorImpl.this, event.getRootId(), iteration);
               }
             }
-            iterations.put(event.getContextId(), iteration);
+            iterations.put(event.getRootId(), iteration);
           } catch (Exception e) {
             logger.error("EventProcessor failed to process event {}.", event, e);
             try {
-              invalidateContext(event.getContextId());
+              invalidateContext(event.getRootId());
             } catch (EventHandlerException ehe) {
-              logger.error("Failed to invalidate Context {}.", event.getContextId(), ehe);
+              logger.error("Failed to invalidate Context {}.", event.getRootId(), ehe);
               stop();
             }
           }
@@ -108,7 +108,7 @@ public class EventProcessorImpl implements EventProcessor {
    * Invalidates context 
    */
   private void invalidateContext(String contextId) throws EventHandlerException {
-    handlerFactory.get(Event.EventType.CONTEXT_STATUS_UPDATE).handle(new ContextStatusEvent(contextId, ContextStatus.FAILED));
+    handlerFactory.get(Event.EventType.CONTEXT_STATUS_UPDATE).handle(new RootStatusEvent(contextId, RootStatus.FAILED));
   }
   
   @Override

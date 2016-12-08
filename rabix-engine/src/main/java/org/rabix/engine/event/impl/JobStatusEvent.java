@@ -9,13 +9,13 @@ public class JobStatusEvent implements Event {
 
   private final String jobId;
   private final JobState state;
-  private final String contextId;
+  private final String rootId;
   
   private final Map<String, Object> result;
   
   public JobStatusEvent(String jobId, String contextId, JobState state, Map<String, Object> result) {
     this.jobId = jobId;
-    this.contextId = contextId;
+    this.rootId = contextId;
     this.state = state;
     this.result = result;
   }
@@ -29,8 +29,8 @@ public class JobStatusEvent implements Event {
   }
 
   @Override
-  public String getContextId() {
-    return contextId;
+  public String getRootId() {
+    return rootId;
   }
   
   public Map<String, Object> getResult() {
@@ -46,7 +46,7 @@ public class JobStatusEvent implements Event {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((contextId == null) ? 0 : contextId.hashCode());
+    result = prime * result + ((rootId == null) ? 0 : rootId.hashCode());
     result = prime * result + ((jobId == null) ? 0 : jobId.hashCode());
     result = prime * result + ((this.result == null) ? 0 : this.result.hashCode());
     result = prime * result + ((state == null) ? 0 : state.hashCode());
@@ -62,10 +62,10 @@ public class JobStatusEvent implements Event {
     if (getClass() != obj.getClass())
       return false;
     JobStatusEvent other = (JobStatusEvent) obj;
-    if (contextId == null) {
-      if (other.contextId != null)
+    if (rootId == null) {
+      if (other.rootId != null)
         return false;
-    } else if (!contextId.equals(other.contextId))
+    } else if (!rootId.equals(other.rootId))
       return false;
     if (jobId == null) {
       if (other.jobId != null)
@@ -84,7 +84,7 @@ public class JobStatusEvent implements Event {
 
   @Override
   public String toString() {
-    return "JobStatusEvent [jobId=" + jobId + ", state=" + state + ", contextId=" + contextId + ", result=" + result + "]";
+    return "JobStatusEvent [jobId=" + jobId + ", state=" + state + ", rootId=" + rootId + ", result=" + result + "]";
   }
 
 }

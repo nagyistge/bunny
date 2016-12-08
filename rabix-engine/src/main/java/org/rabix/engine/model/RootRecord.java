@@ -2,9 +2,9 @@ package org.rabix.engine.model;
 
 import java.util.Map;
 
-public class ContextRecord {
+public class RootRecord {
 
-  public static enum ContextStatus {
+  public static enum RootStatus {
     RUNNING,
     COMPLETED,
     FAILED
@@ -12,9 +12,9 @@ public class ContextRecord {
   
   private String id;
   private Map<String, Object> config;
-  private ContextStatus status;
+  private RootStatus status;
   
-  public ContextRecord(final String id, Map<String, Object> config, ContextStatus status) {
+  public RootRecord(final String id, Map<String, Object> config, RootStatus status) {
     this.id = id;
     this.config = config;
     this.status = status;
@@ -36,17 +36,17 @@ public class ContextRecord {
     this.config = config;
   }
 
-  public ContextStatus getStatus() {
+  public RootStatus getStatus() {
     return status;
   }
 
-  public void setStatus(ContextStatus status) {
+  public void setStatus(RootStatus status) {
     this.status = status;
   }
 
   @Override
   public String toString() {
-    return "ContextRecord [id=" + id + ", config=" + config + ", status=" + status + "]";
+    return "RootRecord [id=" + id + ", config=" + config + ", status=" + status + "]";
   }
 
 }

@@ -8,7 +8,7 @@ import org.rabix.engine.event.Event;
 public class OutputUpdateEvent implements Event {
 
   private final String jobId;
-  private final String contextId;
+  private final String rootId;
   
   private final Object value;
   private final String portId;
@@ -17,13 +17,13 @@ public class OutputUpdateEvent implements Event {
   private final boolean fromScatter;            // it's a scatter event
   private final Integer numberOfScattered;      // number of scattered nodes
 
-  public OutputUpdateEvent(String contextId, String jobId, String portId, Object value, Integer position) {
-    this(contextId, jobId, portId, value, false, null, position);
+  public OutputUpdateEvent(String rootId, String jobId, String portId, Object value, Integer position) {
+    this(rootId, jobId, portId, value, false, null, position);
   }
   
-  public OutputUpdateEvent(String contextId, String jobId, String portId, Object outputValue, boolean fromScatter, Integer numberOfScattered, Integer position) {
+  public OutputUpdateEvent(String rootId, String jobId, String portId, Object outputValue, boolean fromScatter, Integer numberOfScattered, Integer position) {
     this.jobId = jobId;
-    this.contextId = contextId;
+    this.rootId = rootId;
     this.portId = portId;
     this.value = outputValue;
     this.position = position;
@@ -56,8 +56,8 @@ public class OutputUpdateEvent implements Event {
   }
   
   @Override
-  public String getContextId() {
-    return contextId;
+  public String getRootId() {
+    return rootId;
   }
   
   @Override
@@ -69,7 +69,7 @@ public class OutputUpdateEvent implements Event {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((contextId == null) ? 0 : contextId.hashCode());
+    result = prime * result + ((rootId == null) ? 0 : rootId.hashCode());
     result = prime * result + (fromScatter ? 1231 : 1237);
     result = prime * result + ((jobId == null) ? 0 : jobId.hashCode());
     result = prime * result + ((portId == null) ? 0 : portId.hashCode());
@@ -87,10 +87,10 @@ public class OutputUpdateEvent implements Event {
     if (getClass() != obj.getClass())
       return false;
     OutputUpdateEvent other = (OutputUpdateEvent) obj;
-    if (contextId == null) {
-      if (other.contextId != null)
+    if (rootId == null) {
+      if (other.rootId != null)
         return false;
-    } else if (!contextId.equals(other.contextId))
+    } else if (!rootId.equals(other.rootId))
       return false;
     if (fromScatter != other.fromScatter)
       return false;
@@ -119,7 +119,7 @@ public class OutputUpdateEvent implements Event {
 
   @Override
   public String toString() {
-    return "OutputUpdateEvent [jobId=" + jobId + ", contextId=" + contextId + ", portId=" + portId + ", value=" + value + ", fromScatter=" + fromScatter + ", numberOfScattered=" + numberOfScattered + "]";
+    return "OutputUpdateEvent [jobId=" + jobId + ", rootId=" + rootId + ", portId=" + portId + ", value=" + value + ", fromScatter=" + fromScatter + ", numberOfScattered=" + numberOfScattered + "]";
   }
   
 }

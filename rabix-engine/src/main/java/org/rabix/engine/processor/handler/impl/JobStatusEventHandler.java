@@ -25,11 +25,11 @@ import org.rabix.engine.IntermediaryFilesHelper;
 import org.rabix.engine.JobHelper;
 import org.rabix.engine.db.DAGNodeDB;
 import org.rabix.engine.event.Event;
-import org.rabix.engine.event.impl.ContextStatusEvent;
+import org.rabix.engine.event.impl.RootStatusEvent;
 import org.rabix.engine.event.impl.InputUpdateEvent;
 import org.rabix.engine.event.impl.JobStatusEvent;
 import org.rabix.engine.event.impl.OutputUpdateEvent;
-import org.rabix.engine.model.ContextRecord.ContextStatus;
+import org.rabix.engine.model.RootRecord.RootStatus;
 import org.rabix.engine.model.JobRecord;
 import org.rabix.engine.model.JobRecord.PortCounter;
 import org.rabix.engine.model.LinkRecord;
@@ -44,6 +44,7 @@ import org.rabix.engine.service.JobRecordService.JobState;
 import org.rabix.engine.service.LinkRecordService;
 import org.rabix.engine.service.VariableRecordService;
 import org.rabix.engine.status.EngineStatusCallback;
+import org.rabix.engine.status.EngineStatusCallbackException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,14 +90,14 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
 
   @Override
   public void handle(JobStatusEvent event) throws EventHandlerException {
-    JobRecord jobRecord = jobRecordService.find(event.getJobId(), event.getContextId());
+    JobRecord jobRecord = jobRecordService.find(event.getJobId(), event.getRootId());
 
     switch (event.getState()) {
     case READY:
       jobRecord.setState(JobState.READY);
       jobRecordService.update(jobRecord);
       
-      ready(jobRecord, event.getContextId());
+      ready(jobRecord, event.getRootId());
       
       if (detectUnusedFiles) {
         if(jobRecord.isRoot()) {
@@ -137,7 +138,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
               eventProcessor.send(new OutputUpdateEvent(jobRecord.getRootId(), jobRecord.getId(), portCounter.getPort(), output, 1));
             }
           }
-          eventProcessor.send(new ContextStatusEvent(event.getContextId(), ContextStatus.COMPLETED));
+          eventProcessor.send(new RootStatusEvent(event.getRootId(), RootStatus.COMPLETED));
           Job rootJob = JobHelper.createRootJob(jobRecord, JobStatus.COMPLETED, jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB, event.getResult());
           engineStatusCallback.onJobRootCompleted(rootJob);
           deleteRecords(rootJob.getId());
@@ -148,33 +149,35 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
       } else {
         for (PortCounter portCounter : jobRecord.getOutputCounters()) {
           Object output = event.getResult().get(portCounter.getPort());
-          
-          if (detectUnusedFiles) {
+          eventProcessor.addToQueue(new OutputUpdateEvent(jobRecord.getRootId(), jobRecord.getId(), portCounter.getPort(), output, 1));
+        }
+        if (detectUnusedFiles) {
+          try {
+            incrementCountersForOutputFiles(jobRecord, event.getResult());
+            Set<String> unusedFiles = getUnusedFiles(jobRecord, event.getResult());
             try {
-              Set<String> unusedFiles = getUnusedFiles(jobRecord, portCounter.getPort(), output);
-              logger.debug("-------------------------------------------------------------------");
+              engineStatusCallback.onUnusedFilesDetected(unusedFiles);
+            } catch (EngineStatusCallbackException e) {
+              logger.error(e.getMessage());
+            }
+            intermediaryFilesService.dumpFiles();
+          } catch (BindingException e) {
+            logger.debug("Failed to detect unused files");
+          }
+          if (jobRecord.isScattered()) {
+            if(IntermediaryFilesHelper.isScatterComplete(jobRecord, jobRecordService)) {
+              JobRecord parentJob = jobRecordService.find(InternalSchemaHelper.getJobIdFromScatteredId(jobRecord.getId()), jobRecord.getRootId());
               
-              logger.debug("Job: " + jobRecord.getId() + " COMPLETED");
-              logger.debug("Unused Files");
-              for(String file: unusedFiles) {
-                logger.debug(file);
+              intermediaryFilesService.decrementFiles(getInputFilesPaths(parentJob));
+              Set<String> unusedFiles = intermediaryFilesService.getUnusedFiles();
+              try {
+                engineStatusCallback.onUnusedFilesDetected(unusedFiles);
+              } catch (EngineStatusCallbackException e) {
+                logger.error(e.getMessage());
               }
-              logger.debug("-------------------------------------------------------------------");
-              
-              Map<FileValue, Integer> files = IntermediaryFilesHelper.getOutputFiles(jobRecord, portCounter.getPort(), output, linkRecordService);
-              
-              logger.debug("Input files");
-              for(Iterator<Map.Entry<FileValue, Integer>> it = files.entrySet().iterator(); it.hasNext();) {
-                Entry<FileValue, Integer> entry = it.next();
-                logger.debug(entry.getKey().toString());
-                intermediaryFilesService.addOrIncrement(entry.getKey(), (Integer) entry.getValue());
-              }
-            } catch (BindingException e) {
-              e.printStackTrace();
+              intermediaryFilesService.dumpFiles();
             }
           }
- 
-          eventProcessor.addToQueue(new OutputUpdateEvent(jobRecord.getRootId(), jobRecord.getId(), portCounter.getPort(), output, 1));
         }
       }
       break;
@@ -184,7 +187,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
           Job rootJob = JobHelper.createRootJob(jobRecord, JobStatus.FAILED, jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB, null);
           engineStatusCallback.onJobRootFailed(rootJob);
           
-          eventProcessor.send(new ContextStatusEvent(event.getContextId(), ContextStatus.FAILED));
+          eventProcessor.send(new RootStatusEvent(event.getRootId(), RootStatus.FAILED));
           deleteRecords(rootJob.getId());
         } catch (Exception e) {
           logger.error("Failed to call onRootFailed callback for Job " + jobRecord.getRootId(), e);
@@ -195,7 +198,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
           Job failedJob = JobHelper.createJob(jobRecord, JobStatus.FAILED, jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB);
           engineStatusCallback.onJobFailed(failedJob);
           
-          eventProcessor.send(new JobStatusEvent("root", event.getContextId(), JobState.FAILED, null)); // TODO remove hardcoded 'root' value
+          eventProcessor.send(new JobStatusEvent("root", event.getRootId(), JobState.FAILED, null)); // TODO remove hardcoded 'root' value
         } catch (Exception e) {
           logger.error("Failed to call onFailed callback for Job " + jobRecord.getId(), e);
           throw new EventHandlerException("Failed to call onFailed callback for Job " + jobRecord.getId(), e);
@@ -371,10 +374,32 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
     jobRecordService.update(job);
   }
   
-  private Set<String> getUnusedFiles(JobRecord job, String portId, Object output) throws BindingException {
-    List<FileValue> inputFiles = new ArrayList<FileValue>();
-    List<FileValue> outputFiles = FileValueHelper.getFilesFromValue(output);
+  private Set<String> getUnusedFiles(JobRecord job, Object output) throws BindingException {
+    Set<String> inputPaths = getInputFilesPaths(job);
     
+    List<FileValue> outputFiles = FileValueHelper.getFilesFromValue(output);
+    Set<String> outputPaths = new HashSet<String>();
+    Set<FileValue> outputSet = new HashSet<FileValue>(outputFiles);
+    for(FileValue file: outputSet) {
+      IntermediaryFilesHelper.extractPathsFromFileValue(outputPaths, file);
+    }
+    // inputPaths.removeAll(outputPaths);
+    intermediaryFilesService.decrementFiles(inputPaths);
+    Set<String> unusedFiles = intermediaryFilesService.getUnusedFiles();
+    return unusedFiles;
+  }
+  
+  private void incrementCountersForOutputFiles(JobRecord jobRecord, Map<String, Object> result) {
+    Map<FileValue, Integer> files = IntermediaryFilesHelper.getOutputFiles(jobRecord, result, linkRecordService);
+    for(Iterator<Map.Entry<FileValue, Integer>> it = files.entrySet().iterator(); it.hasNext();) {
+      Entry<FileValue, Integer> entry = it.next();
+      logger.debug(entry.getKey().toString());
+      intermediaryFilesService.addOrIncrement(entry.getKey(), (Integer) entry.getValue());
+    }
+  }
+  
+  private Set<String> getInputFilesPaths(JobRecord job) {
+    List<FileValue> inputFiles = new ArrayList<FileValue>();
     List<VariableRecord> inputVariables = variableRecordService.find(job.getId(), LinkPortType.INPUT, job.getRootId());
     for(VariableRecord input: inputVariables) {
       if(input.getValue() instanceof FileValue) {
@@ -383,10 +408,11 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
     }
     inputFiles = FileValueHelper.getFilesFromValue(inputFiles);
     Set<FileValue> inputSet = new HashSet<FileValue>(inputFiles);
-    Set<FileValue> outputSet = new HashSet<FileValue>(outputFiles);
-    intermediaryFilesService.decrementFiles(inputSet);
-    Set<String> unusedFiles = intermediaryFilesService.getUnusedFiles(outputSet);
-    return unusedFiles;
+    Set<String> inputPaths = new HashSet<String>();
+    for(FileValue file: inputSet) {
+      IntermediaryFilesHelper.extractPathsFromFileValue(inputPaths, file);
+    }
+    return inputPaths;
   }
 
 }
