@@ -76,7 +76,7 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
       sourceJob.resetOutputPortCounter(event.getNumberOfScattered(), event.getPortId());
     }
     VariableRecord sourceVariable = variableService.find(event.getJobId(), event.getPortId(), LinkPortType.OUTPUT, event.getContextId());
-    if ((linkService.findBySource(event.getJobId(), event.getPortId(), event.getContextId()).isEmpty())) {
+    if ((linkService.findBySource(event.getJobId(), event.getPortId(), event.getContextId()).isEmpty()) && !sourceJob.isRoot()) {
       sourceVariable.addValue(event.getValue(), event.getPosition());
       return;
     }
