@@ -39,17 +39,17 @@ public class IntermediaryFilesHelper {
       boolean isScattered = false;
       for (Map.Entry<String, Object> entry : job.getOutputs().entrySet()) {
         List<FileValue> files = FileValueHelper.getFilesFromValue(entry.getValue());
-        if (!files.isEmpty()) {
-          List<LinkRecord> links = linkRecordService.findBySource(job.getName(), entry.getKey(), job.getRootId());
-          Integer count = links.size();
-          for (LinkRecord link : links) {
-            if(link.getDestinationJobId().equals(InternalSchemaHelper.getJobIdFromScatteredId(job.getName())) && InternalSchemaHelper.getScatteredNumber(job.getName()) != null) {
-              isScattered = true;
-            }
-            if(!link.getDestinationJobId().equals(InternalSchemaHelper.ROOT_NAME) && link.getDestinationVarType().equals(LinkPortType.OUTPUT)) {
-              count--;
-            }
+        List<LinkRecord> links = linkRecordService.findBySource(job.getName(), entry.getKey(), job.getRootId());
+        Integer count = links.size();
+        for (LinkRecord link : links) {
+          if(link.getDestinationJobId().equals(InternalSchemaHelper.getJobIdFromScatteredId(job.getName())) && InternalSchemaHelper.getScatteredNumber(job.getName()) != null) {
+            isScattered = true;
           }
+          if(!link.getDestinationJobId().equals(InternalSchemaHelper.ROOT_NAME) && link.getDestinationVarType().equals(LinkPortType.OUTPUT)) {
+            count--;
+          }
+        }
+        if (!files.isEmpty()) {
           for (FileValue file : files) {
             if(count > 0) {
               intermediaryFilesService.addOrIncrement(job.getRootId(), file, count);
