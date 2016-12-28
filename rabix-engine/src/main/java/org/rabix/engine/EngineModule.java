@@ -17,6 +17,7 @@ import org.rabix.engine.service.ContextRecordService;
 import org.rabix.engine.service.JobRecordService;
 import org.rabix.engine.service.LinkRecordService;
 import org.rabix.engine.service.VariableRecordService;
+import org.rabix.engine.service.cache.JobRecordCache;
 import org.skife.jdbi.v2.DBI;
 
 import com.github.mlk.guice.JdbiModule;
@@ -30,6 +31,7 @@ public class EngineModule extends AbstractModule {
     bind(DAGNodeDB.class).in(Scopes.SINGLETON);
     bind(ReadyJobGroupsDB.class).in(Scopes.SINGLETON);
     
+    bind(JobRecordCache.class).in(Scopes.SINGLETON);
     bind(JobRecordService.class).in(Scopes.SINGLETON);
     bind(VariableRecordService.class).in(Scopes.SINGLETON);
     bind(LinkRecordService.class).in(Scopes.SINGLETON);

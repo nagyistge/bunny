@@ -19,7 +19,6 @@ import org.rabix.bindings.model.Resources;
 import org.rabix.bindings.model.dag.DAGNode;
 import org.rabix.common.SystemEnvironmentHelper;
 import org.rabix.engine.JobHelper;
-import org.rabix.engine.db.DAGNodeDB;
 import org.rabix.engine.event.impl.InitEvent;
 import org.rabix.engine.event.impl.JobStatusEvent;
 import org.rabix.engine.model.JobRecord;
@@ -31,7 +30,6 @@ import org.rabix.engine.rest.helpers.IntermediaryFilesHelper;
 import org.rabix.engine.rest.service.IntermediaryFilesService;
 import org.rabix.engine.rest.service.JobService;
 import org.rabix.engine.rest.service.JobServiceException;
-import org.rabix.engine.service.ContextRecordService;
 import org.rabix.engine.service.JobRecordService;
 import org.rabix.engine.service.JobRecordService.JobState;
 import org.rabix.engine.service.LinkRecordService;
@@ -52,10 +50,8 @@ public class JobServiceImpl implements JobService {
   private final JobRecordService jobRecordService;
   private final LinkRecordService linkRecordService;
   private final VariableRecordService variableRecordService;
-  private final ContextRecordService contextRecordService;
   
   private final JobDB jobDB;
-  private final DAGNodeDB dagNodeDB;
   
   private final EventProcessor eventProcessor;
   private final BackendDispatcher backendDispatcher;
@@ -69,15 +65,13 @@ public class JobServiceImpl implements JobService {
   private boolean keepInputFiles;
   
   @Inject
-  public JobServiceImpl(EventProcessor eventProcessor, JobRecordService jobRecordService, VariableRecordService variableRecordService, LinkRecordService linkRecordService, ContextRecordService contextRecordService, BackendDispatcher backendDispatcher, IntermediaryFilesService intermediaryFilesService, Configuration configuration, DAGNodeDB dagNodeDB, JobDB jobDB) {
+  public JobServiceImpl(EventProcessor eventProcessor, JobRecordService jobRecordService, VariableRecordService variableRecordService, LinkRecordService linkRecordService, BackendDispatcher backendDispatcher, IntermediaryFilesService intermediaryFilesService, Configuration configuration, JobDB jobDB) {
     this.jobDB = jobDB;
-    this.dagNodeDB = dagNodeDB;
     this.eventProcessor = eventProcessor;
     
     this.jobRecordService = jobRecordService;
     this.linkRecordService = linkRecordService;
     this.variableRecordService = variableRecordService;
-    this.contextRecordService = contextRecordService;
     this.backendDispatcher = backendDispatcher;
     
     this.intermediaryFilesService = intermediaryFilesService;
@@ -179,11 +173,6 @@ public class JobServiceImpl implements JobService {
   }
   
   @Override
-  public Set<Job> getReady(EventProcessor eventProcessor, String contextId) throws JobServiceException {
-    return JobHelper.createReadyJobs(jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB, contextId);
-  }
-  
-  @Override
   public Set<Job> get() {
     return jobDB.getJobs();
   }
@@ -212,6 +201,8 @@ public class JobServiceImpl implements JobService {
     
     @Override
     public void onJobReady(Job job) {
+      jobRecordService.flushCache();
+      
       if (setResources) {
         long numberOfCores;
         long memory;
@@ -232,6 +223,7 @@ public class JobServiceImpl implements JobService {
     
     @Override
     public void onJobsReady(Set<Job> jobs) throws EngineStatusCallbackException {
+      jobRecordService.flushCache();
       for (Job job : jobs) {
         onJobReady(job);
       }

@@ -60,23 +60,6 @@ public class JobHelper {
     return null;
   }
   
-  public static Set<Job> createReadyJobs(JobRecordService jobRecordService, VariableRecordService variableRecordService, LinkRecordService linkRecordService, ContextRecordService contextRecordService, DAGNodeDB dagNodeDB, String contextId) {
-    Set<Job> jobs = new HashSet<>();
-    List<JobRecord> jobRecords = jobRecordService.findReady(contextId);
-
-    if (!jobRecords.isEmpty()) {
-      for (JobRecord job : jobRecords) {
-        try {
-          jobs.add(createReadyJob(job, JobStatus.READY, jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB));
-        } catch (BindingException e) {
-          logger.debug("Failed to create job", e);
-        }
-        
-      }
-    }
-    return jobs;
-  }
-  
   public static Job createReadyJob(JobRecord job, JobStatus status, JobRecordService jobRecordService, VariableRecordService variableRecordService, LinkRecordService linkRecordService, ContextRecordService contextRecordService, DAGNodeDB dagNodeDB) throws BindingException {
     return createJob(job, status, jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB, true);
   }
