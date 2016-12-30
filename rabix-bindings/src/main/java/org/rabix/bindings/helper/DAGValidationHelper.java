@@ -65,17 +65,6 @@ public class DAGValidationHelper {
     if(marked.size() != containerNode.getChildren().size()) {
       throw new BindingException("Graph is not connected");
     }
-    for (DAGLinkPort input: containerNode.getInputPorts()) {
-      boolean connected = false;
-      for (DAGLink dataLink : containerNode.getLinks()) {
-        if (dataLink.getSource().equals(input)) {
-          connected = true;
-        }
-      }
-      if (!connected) {
-        throw new BindingException("Graph is not connected");
-      }
-    }
     for (DAGLinkPort output : containerNode.getOutputPorts()) {
       boolean connected = false;
       for(DAGLink dataLink: containerNode.getLinks()) {
@@ -97,11 +86,19 @@ public class DAGValidationHelper {
   private static List<DAGNode> getRootNodes(DAGContainer containerNode) {
     List<DAGNode> rootNodes = new ArrayList<DAGNode>();
     for (DAGNode node : containerNode.getChildren()) {
+      boolean isRoot = false;
+      boolean noInputs = true;
       for (DAGLink dataLink : containerNode.getLinks()) {
-        if (dataLink.getDestination().getDagNodeId().equals(node.getId()) && dataLink.getSource().getDagNodeId().equals(containerNode.getId())) {
-          rootNodes.add(node);
-          break;
+        if (dataLink.getDestination().getDagNodeId().equals(node.getId())) {
+          noInputs = false;
+          if(dataLink.getSource().getDagNodeId().equals(containerNode.getId())) {
+            isRoot = true;
+            break;
+          }
         }
+      }
+      if(isRoot || noInputs) {
+        rootNodes.add(node);
       }
     }
     return rootNodes;
