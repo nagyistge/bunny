@@ -8,6 +8,7 @@ import java.util.Set;
 import org.rabix.bindings.BindingException;
 import org.rabix.bindings.model.dag.DAGContainer;
 import org.rabix.bindings.model.dag.DAGLink;
+import org.rabix.bindings.model.dag.DAGLinkPort;
 import org.rabix.bindings.model.dag.DAGNode;
 
 public class DAGValidationHelper {
@@ -26,6 +27,14 @@ public class DAGValidationHelper {
       }
     }
   }
+  
+  public static void isConnected(final DAGNode dagNode) throws BindingException {
+    if (!(dagNode instanceof DAGContainer)) {
+      return;
+    }
+    DAGContainer containerNode = (DAGContainer) dagNode;
+    checkIsContainerConnected(containerNode);
+  }
 
   private static void checkForLoop(DAGContainer containerNode, DAGNode dagNode, Set<DAGNode> marked, Set<DAGNode> stack) throws BindingException {
     marked.add(dagNode);
@@ -39,6 +48,50 @@ public class DAGValidationHelper {
       }
     }
     stack.remove(dagNode);
+  }
+  
+  private static void bfsSearch(DAGContainer containerNode, List<DAGNode> nodes, Set<DAGNode> marked) throws BindingException {
+    for (DAGNode node : nodes) {
+      marked.add(node);
+      List<DAGNode> adjacentNodes = getAdjacentNodes(containerNode, node);
+      bfsSearch(containerNode, adjacentNodes, marked);
+    }
+  }
+  
+  private static void checkIsContainerConnected(DAGContainer containerNode) throws BindingException {
+    Set<DAGNode> marked = new HashSet<DAGNode>();
+    List<DAGNode> root = getRootNodes(containerNode);
+    bfsSearch(containerNode, root, marked);
+    if(marked.size() != containerNode.getChildren().size()) {
+      throw new BindingException("Graph is not connected");
+    }
+    for (DAGLinkPort input: containerNode.getInputPorts()) {
+      boolean connected = false;
+      for (DAGLink dataLink : containerNode.getLinks()) {
+        if (dataLink.getSource().equals(input)) {
+          connected = true;
+        }
+      }
+      if (!connected) {
+        throw new BindingException("Graph is not connected");
+      }
+    }
+    for (DAGLinkPort output : containerNode.getOutputPorts()) {
+      boolean connected = false;
+      for(DAGLink dataLink: containerNode.getLinks()) {
+        if (dataLink.getDestination().equals(output)) {
+          connected = true;
+        }
+      }
+      if (!connected) {
+        throw new BindingException("Graph is not connected");
+      }
+    }
+    for(DAGNode node: containerNode.getChildren()) {
+      if (node instanceof DAGContainer) {
+        checkIsContainerConnected((DAGContainer) node);
+      }
+    }
   }
 
   private static List<DAGNode> getRootNodes(DAGContainer containerNode) {
