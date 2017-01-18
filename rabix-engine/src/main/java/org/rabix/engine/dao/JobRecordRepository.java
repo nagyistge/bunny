@@ -30,7 +30,7 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 @RegisterMapper(JobRecordMapper.class)
-public interface JobRecordRepository {
+public interface JobRecordRepository extends Repository<JobRecord> {
 
   @SqlUpdate("insert into job_record (id,external_id,root_id,parent_id,blocking,job_state,input_counters,output_counters,is_scattered,is_container,is_scatter_wrapper,global_inputs_count,global_outputs_count,scatter_strategy) values (:id,:external_id,:root_id,:parent_id,:blocking,:job_state,:input_counters,:output_counters,:is_scattered,:is_container,:is_scatter_wrapper,:global_inputs_count,:global_outputs_count,:scatter_strategy)")
   int insert(@BindJobRecord JobRecord jobRecord);

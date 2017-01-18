@@ -1,19 +1,16 @@
 package org.rabix.engine.service;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.rabix.bindings.model.dag.DAGLinkPort;
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.engine.dao.JobRecordRepository;
+import org.rabix.engine.dao.Repository;
 import org.rabix.engine.model.JobRecord;
 import org.rabix.engine.model.JobRecord.PortCounter;
-import org.rabix.engine.service.cache.JobRecordCache;
-import org.rabix.engine.service.cache.JobRecordCache.Action;
-import org.rabix.engine.service.cache.JobRecordCache.CacheItem;
+import org.rabix.engine.service.cache.generic.Cache;
+import org.rabix.engine.service.cache.generic.CacheItem.Action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,9 +20,6 @@ public class JobRecordService {
 
   private final static Logger logger = LoggerFactory.getLogger(JobRecordService.class);
   
-  public static AtomicInteger updateServiceCount = new AtomicInteger(0);
-  public static AtomicInteger updateDBCount = new AtomicInteger(0);
-  
   public static enum JobState {
     PENDING,
     READY,
@@ -34,13 +28,17 @@ public class JobRecordService {
     FAILED
   }
 
-  private JobRecordCache cache;
+  private Cache<JobRecord, Repository<JobRecord>> cache;
   private JobRecordRepository jobRecordRepository;
   
   @Inject
-  public JobRecordService(JobRecordRepository jobRecordRepository, JobRecordCache cache) {
-    this.cache = cache;
+  public JobRecordService(JobRecordRepository jobRecordRepository) {
+    this.cache = new Cache<JobRecord, Repository<JobRecord>>(jobRecordRepository, JobRecord.class);
     this.jobRecordRepository = jobRecordRepository;
+  }
+  
+  public Cache<JobRecord, Repository<JobRecord>> getCache() {
+    return cache;
   }
   
   public static String generateUniqueId() {
@@ -55,48 +53,16 @@ public class JobRecordService {
   }
   
   public void update(JobRecord jobRecord) {
-    updateServiceCount.incrementAndGet();
     cache.put(jobRecord, Action.UPDATE);
   }
   
-  public void flushCache() {
-    Collection<CacheItem> items = cache.getCacheItems();
-    
-    List<CacheItem> inserts = new ArrayList<>();
-    List<CacheItem> updates = new ArrayList<>();
-    
-    for (CacheItem item : items) {
-      switch (item.action) {
-      case INSERT:
-        inserts.add(item);
-        break;
-      case UPDATE:
-        updates.add(item);
-        break;
-      default:
-        break;
-      }
-    }
-    
-    for (CacheItem item : inserts) {
-      jobRecordRepository.insert(item.jobRecord);
-    }
-    for (CacheItem item : updates) {
-      updateDBCount.incrementAndGet();
-      jobRecordRepository.update(item.jobRecord);
-    }
-    cache.clear();
-    
-    System.out.println("Service: " + updateServiceCount.get() + ", DB: " + updateDBCount.get());
-  }
-
   // get from DB and put to cache with UPDATE action - don't override
   public List<JobRecord> findByParent(String parentId, String contextId) {
     return jobRecordRepository.getByParent(parentId, contextId);
   }
   
   public JobRecord find(String id, String contextId) {
-    JobRecord record = cache.get(id, contextId);
+    JobRecord record = (JobRecord) cache.get(new JobRecord.JobCacheKey(id, contextId));
     if (record != null) {
       return record;
     }

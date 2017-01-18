@@ -201,7 +201,7 @@ public class JobServiceImpl implements JobService {
     
     @Override
     public void onJobReady(Job job) {
-      jobRecordService.flushCache();
+      jobRecordService.getCache().flush();
       
       if (setResources) {
         long numberOfCores;
@@ -223,7 +223,6 @@ public class JobServiceImpl implements JobService {
     
     @Override
     public void onJobsReady(Set<Job> jobs) throws EngineStatusCallbackException {
-      jobRecordService.flushCache();
       for (Job job : jobs) {
         onJobReady(job);
       }

@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -107,8 +108,11 @@ public class BackendCommandLine {
   private static final Logger logger = LoggerFactory.getLogger(BackendCommandLine.class);
   private static String configDir = "/.bunny/config";
   
-
+  private static long startTime; 
+  
   public static void main(String[] commandLineArguments) {
+    startTime = System.currentTimeMillis();
+    
     final CommandLineParser commandLineParser = new DefaultParser();
     final Options posixOptions = createOptions();
 
@@ -434,6 +438,7 @@ public class BackendCommandLine {
               try {
                 Map<String, Object> outputs = (Map<String, Object>) finalBindings.translateToSpecific(rootJob.getOutputs());
                 System.out.println(JSONHelper.mapperWithoutNulls.writerWithDefaultPrettyPrinter().writeValueAsString(outputs));
+                logger.debug("Task lasted for " + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - startTime) + " seconda(s)");
                 System.exit(0);
               } catch (BindingException e) {
                 logger.error("Failed to translate common outputs to native", e);

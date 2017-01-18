@@ -2,8 +2,10 @@ package org.rabix.engine.model;
 
 import org.rabix.bindings.model.LinkMerge;
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
+import org.rabix.engine.service.cache.generic.Cachable;
+import org.rabix.engine.service.cache.generic.CacheKey;
 
-public class VariableRecord {
+public class VariableRecord implements Cachable {
 
   private String contextId;
 
@@ -122,6 +124,94 @@ public class VariableRecord {
     this.numberOfTimesUpdated = numberOfTimesUpdated;
   }
 
+  @Override
+  public CacheKey generateKey() {
+    return new VariableRecordCacheKey(this);
+  }
+  
+  public static class VariableRecordCacheKey implements CacheKey {
+    private String jobId;
+    private String portId;
+    private String rootId;
+    private LinkPortType type;
+    
+    public VariableRecordCacheKey(VariableRecord variableRecord) {
+      this.jobId = variableRecord.getJobId();
+      this.portId = variableRecord.getPortId();
+      this.rootId = variableRecord.getContextId();
+      this.type = variableRecord.getType();
+    }
+    
+    public VariableRecordCacheKey(String jobId, String portId, String rootId, LinkPortType type) {
+      this.jobId = jobId;
+      this.portId = portId;
+      this.rootId = rootId;
+      this.type = type;
+    }
+
+    public String getJobId() {
+      return jobId;
+    }
+
+    public String getPortId() {
+      return portId;
+    }
+
+    public String getRootId() {
+      return rootId;
+    }
+
+    public LinkPortType getType() {
+      return type;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((jobId == null) ? 0 : jobId.hashCode());
+      result = prime * result + ((portId == null) ? 0 : portId.hashCode());
+      result = prime * result + ((rootId == null) ? 0 : rootId.hashCode());
+      result = prime * result + ((type == null) ? 0 : type.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      VariableRecordCacheKey other = (VariableRecordCacheKey) obj;
+      if (jobId == null) {
+        if (other.jobId != null)
+          return false;
+      } else if (!jobId.equals(other.jobId))
+        return false;
+      if (portId == null) {
+        if (other.portId != null)
+          return false;
+      } else if (!portId.equals(other.portId))
+        return false;
+      if (rootId == null) {
+        if (other.rootId != null)
+          return false;
+      } else if (!rootId.equals(other.rootId))
+        return false;
+      if (type != other.type)
+        return false;
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "VariableRecordCacheKey [jobId=" + jobId + ", portId=" + portId + ", rootId=" + rootId + ", type=" + type + "]";
+    }
+    
+  }
+  
   @Override
   public String toString() {
     return "VariableRecord [contextId=" + contextId + ", jobId=" + jobId + ", portId=" + portId + ", type=" + type

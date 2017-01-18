@@ -28,7 +28,7 @@ import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 @RegisterMapper(VariableRecordMapper.class)
-public interface VariableRecordRepository {
+public interface VariableRecordRepository extends Repository<VariableRecord> {
 
   @SqlUpdate("insert into variable_record (job_id,value,port_id,type,link_merge,is_wrapped,globals_count,times_updated_count,context_id,is_default,transform) values (:job_id,:value,:port_id,:type,:link_merge,:is_wrapped,:globals_count,:times_updated_count,:context_id,:is_default,:transform)")
   int insert(@BindVariableRecord VariableRecord jobRecord);

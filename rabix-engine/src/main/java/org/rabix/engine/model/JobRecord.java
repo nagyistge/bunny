@@ -8,11 +8,13 @@ import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.bindings.model.dag.DAGNode;
 import org.rabix.engine.model.scatter.ScatterStrategy;
 import org.rabix.engine.service.JobRecordService.JobState;
+import org.rabix.engine.service.cache.generic.Cachable;
+import org.rabix.engine.service.cache.generic.CacheKey;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class JobRecord {
+public class JobRecord implements Cachable {
 
   private String id;
   private String externalId;
@@ -35,7 +37,56 @@ public class JobRecord {
   
   private ScatterStrategy scatterStrategy;
   
-  public JobRecord() {
+  @Override
+  public CacheKey generateKey() {
+    return new JobCacheKey(this);
+  }
+  
+  public static class JobCacheKey implements CacheKey {
+    String id;
+    String root;
+    
+    public JobCacheKey(JobRecord record) {
+      this.id = record.id;
+      this.root = record.rootId;
+    }
+    
+    public JobCacheKey(String id, String rootId) {
+      this.id = id;
+      this.root = rootId;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((id == null) ? 0 : id.hashCode());
+      result = prime * result + ((root == null) ? 0 : root.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      JobCacheKey other = (JobCacheKey) obj;
+      if (id == null) {
+        if (other.id != null)
+          return false;
+      } else if (!id.equals(other.id))
+        return false;
+      if (root == null) {
+        if (other.root != null)
+          return false;
+      } else if (!root.equals(other.root))
+        return false;
+      return true;
+    }
+
   }
   
   public JobRecord(String rootId, String id, String uniqueId, String parentId, JobState state, Boolean isContainer, Boolean isScattered, Boolean master, Boolean blocking) {
