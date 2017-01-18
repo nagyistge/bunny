@@ -8,6 +8,7 @@ import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.engine.dao.Repository;
 import org.rabix.engine.dao.VariableRecordRepository;
 import org.rabix.engine.model.VariableRecord;
+import org.rabix.engine.model.VariableRecord.VariableRecordCacheKey;
 import org.rabix.engine.service.cache.generic.Cache;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
 
@@ -25,27 +26,48 @@ public class VariableRecordService {
   }
   
   public void create(VariableRecord variableRecord) {
-//    cache.put(variableRecord, Action.INSERT);
-    variableRecordRepository.insert(variableRecord);
+    cache.put(variableRecord, Action.INSERT);
   }
   
   public void delete(String rootId) {
   }
 
   public void update(VariableRecord variableRecord) {
-    variableRecordRepository.update(variableRecord);
+    cache.put(variableRecord, Action.UPDATE);
   }
   
   public List<VariableRecord> find(String jobId, LinkPortType type, String contextId) {
-    return variableRecordRepository.getByType(jobId, type, contextId);
+    List<VariableRecord> records = cache.get(new VariableRecordCacheKey(jobId, null, contextId, type));
+    if (!records.isEmpty()) {
+      return records;
+    }
+    records = variableRecordRepository.getByType(jobId, type, contextId);
+    for (VariableRecord variableRecord : records) {
+      cache.put(variableRecord, Action.UPDATE);
+    }
+    return records;
   }
   
   public List<VariableRecord> find(String jobId, String portId, String contextId) {
-    return variableRecordRepository.getByPort(jobId, portId, contextId);
+    List<VariableRecord> records = cache.get(new VariableRecordCacheKey(jobId, portId, contextId, null));
+    if (!records.isEmpty()) {
+      return records;
+    }
+    records = variableRecordRepository.getByPort(jobId, portId, contextId);
+    for (VariableRecord variableRecord : records) {
+      cache.put(variableRecord, Action.UPDATE);
+    }
+    return records;
   }
 
   public VariableRecord find(String jobId, String portId, LinkPortType type, String contextId) {
-    return variableRecordRepository.get(jobId, portId, type, contextId);
+    List<VariableRecord> records = cache.get(new VariableRecordCacheKey(jobId, portId, contextId, type));
+    if (!records.isEmpty()) {
+      return records.get(0);
+    }
+    VariableRecord record = variableRecordRepository.get(jobId, portId, type, contextId);
+    cache.put(record, Action.UPDATE);
+    return record;
   }
 
   @SuppressWarnings("unchecked")
@@ -137,6 +159,10 @@ public class VariableRecordService {
       return variableRecord.getValue();
     }
     return linkMerge(variableRecord);
+  }
+
+  public Cache<VariableRecord, Repository<VariableRecord>> getCache() {
+    return cache;
   }
   
 }

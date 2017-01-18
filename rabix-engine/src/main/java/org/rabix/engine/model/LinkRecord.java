@@ -1,8 +1,10 @@
 package org.rabix.engine.model;
 
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
+import org.rabix.engine.service.cache.generic.Cachable;
+import org.rabix.engine.service.cache.generic.CacheKey;
 
-public class LinkRecord {
+public class LinkRecord implements Cachable {
 
   private String contextId;
   
@@ -87,5 +89,12 @@ public class LinkRecord {
   public String toString() {
     return "LinkRecord [contextId=" + contextId + ", sourceJobId=" + sourceJobId + ", sourceJobPort=" + sourceJobPort + ", sourceVarType=" + sourceVarType + ", destinationJobId=" + destinationJobId + ", destinationJobPort=" + destinationJobPort + ", destinationVarType=" + destinationVarType + ", position=" + position + "]";
   }
+
+  @Override
+  public CacheKey generateKey() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+  
   
 }

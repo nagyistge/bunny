@@ -177,6 +177,9 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
     default:
       break;
     }
+    
+    jobRecordService.getCache().flush();
+    variableRecordService.getCache().flush();
   }
   
   private void deleteRecords(String rootId) {

@@ -62,12 +62,12 @@ public class JobRecordService {
   }
   
   public JobRecord find(String id, String contextId) {
-    JobRecord record = (JobRecord) cache.get(new JobRecord.JobCacheKey(id, contextId));
-    if (record != null) {
-      return record;
+    List<JobRecord> records = (List<JobRecord>) cache.get(new JobRecord.JobCacheKey(id, contextId));
+    if (!records.isEmpty()) {
+      return records.get(0);
     }
-    record = jobRecordRepository.get(id, contextId);
-    cache.put(record);
+    JobRecord record = jobRecordRepository.get(id, contextId);
+    cache.put(record, Action.UPDATE);
     return record;
   }
   

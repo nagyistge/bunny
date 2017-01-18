@@ -149,6 +149,27 @@ public class VariableRecord implements Cachable {
       this.type = type;
     }
 
+    @Override
+    public boolean satisfies(CacheKey key) {
+      if (key instanceof VariableRecordCacheKey) {
+        VariableRecordCacheKey key2 = (VariableRecordCacheKey) key;
+        if (!jobId.equals(key2.jobId) && key2.jobId != null) {
+          return false;
+        }
+        if (!portId.equals(key2.portId) && key2.portId != null) {
+          return false;
+        }
+        if (!rootId.equals(key2.rootId) && key2.rootId != null) {
+          return false;
+        }
+        if (!type.equals(key2.type) && key2.type != null) {
+          return false;
+        }
+        return true;
+      }
+      return false;
+    }
+    
     public String getJobId() {
       return jobId;
     }
@@ -209,7 +230,7 @@ public class VariableRecord implements Cachable {
     public String toString() {
       return "VariableRecordCacheKey [jobId=" + jobId + ", portId=" + portId + ", rootId=" + rootId + ", type=" + type + "]";
     }
-    
+
   }
   
   @Override

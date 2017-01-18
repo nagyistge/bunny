@@ -5,10 +5,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Map.Entry;
 
 import org.rabix.engine.dao.Repository;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
@@ -30,7 +29,7 @@ public class Cache<C extends Cachable, R extends Repository<C>> {
   }
   
   public void flush() {
-    Collection<CacheItem<C>> items = getCacheItems();
+    Collection<CacheItem<C>> items = cache.values();
     
     List<CacheItem<C>> inserts = new ArrayList<>();
     List<CacheItem<C>> updates = new ArrayList<>();
@@ -63,16 +62,6 @@ public class Cache<C extends Cachable, R extends Repository<C>> {
     cache.clear();
   }
   
-  public void put(C cachable) {
-    put(cachable, Action.UPDATE);
-  }
-  
-  public void put(Collection<C> cachables) {
-    for (C cachable : cachables) {
-      put(cachable, Action.UPDATE);
-    }
-  }
-  
   public void put(C cachable, Action action) {
     CacheKey key = cachable.generateKey();
     if (cache.containsKey(key)) {
@@ -83,24 +72,18 @@ public class Cache<C extends Cachable, R extends Repository<C>> {
     }
   }
   
-  public Cachable get(CacheKey key) {
-    return cache.get(key) != null ? cache.get(key).cachable : null;
+  public List<C> get(CacheKey search) {
+    List<C> result = new ArrayList<>();
+    for (Entry<CacheKey, CacheItem<C>> entry : cache.entrySet()) {
+      if (entry.getKey().satisfies(search)) {
+        result.add(entry.getValue().cachable);
+      }
+    }
+    return result;
   }
   
   public boolean isEmpty() {
     return cache.isEmpty();
-  }
-  
-  public Set<Cachable> get() {
-    Set<Cachable> records = new HashSet<>();
-    for (CacheItem<C> item : cache.values()) {
-      records.add(item.cachable);
-    }
-    return records;
-  }
-  
-  public Collection<CacheItem<C>> getCacheItems() {
-    return cache.values();
   }
   
 }

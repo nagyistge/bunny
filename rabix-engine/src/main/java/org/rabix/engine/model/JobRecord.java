@@ -55,6 +55,14 @@ public class JobRecord implements Cachable {
       this.id = id;
       this.root = rootId;
     }
+    
+    @Override
+    public boolean satisfies(CacheKey key) {
+      if (key instanceof JobCacheKey) {
+        return id.equals(((JobCacheKey) key).id) && root.equals(((JobCacheKey) key).root);
+      }
+      return false;
+    }
 
     @Override
     public int hashCode() {
