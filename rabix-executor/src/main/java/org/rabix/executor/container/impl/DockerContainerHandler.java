@@ -158,17 +158,27 @@ public class DockerContainerHandler implements ContainerHandler {
 
   @Override
   public void start() throws ContainerException {
-    String dockerPull = checkTagOrAddLatest(dockerResource.getDockerPull());
+    boolean pull;
+    String imageId = dockerResource.getDockerPull();
+    if (imageId != null) {
+      pull = true;
+      imageId = checkTagOrAddLatest(imageId);
+    } else {
+      pull = false;
+      imageId = dockerResource.getDockerImageId();
+    }
 
     try {
-      pull(dockerPull);
+      if (pull) {
+        pull(imageId);
+      }
 
       Set<String> volumes = new HashSet<>();
       String physicalPath = storageConfig.getPhysicalExecutionBaseDir().getAbsolutePath();
       volumes.add(physicalPath);
 
       ContainerConfig.Builder builder = ContainerConfig.builder();
-      builder.image(dockerPull);
+      builder.image(imageId);
 
       HostConfig.Builder hostConfigBuilder = HostConfig.builder();
       volumes = normalizeVolumes(job, volumes);

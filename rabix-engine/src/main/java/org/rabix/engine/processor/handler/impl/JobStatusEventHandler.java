@@ -179,6 +179,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
     }
     
     jobRecordService.getCache().flush();
+    linkRecordService.getCache().flush();
     variableRecordService.getCache().flush();
   }
   

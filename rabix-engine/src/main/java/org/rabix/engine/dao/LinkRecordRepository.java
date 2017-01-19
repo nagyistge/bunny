@@ -24,7 +24,7 @@ import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 @RegisterMapper(LinkRecordMapper.class)
-public interface LinkRecordRepository {
+public interface LinkRecordRepository extends Repository<LinkRecord> {
 
   @SqlUpdate("insert into link_record (context_id,source_job_id,source_job_port_id,source_type,destination_job_id,destination_job_port_id,destination_type,position) values (:context_id,:source_job_id,:source_job_port_id,:source_type,:destination_job_id,:destination_job_port_id,:destination_type,:position)")
   int insert(@BindLinkRecord LinkRecord linkRecord);
