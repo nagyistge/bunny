@@ -127,6 +127,10 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
       break;
     case COMPLETED:
       if (jobRecord.isRoot()) {
+        jobRecordService.getCache().flush();
+        linkRecordService.getCache().flush();
+        variableRecordService.getCache().flush();
+        
         try {
           if(!jobRecord.isContainer()) {
             // if root is CommandLineTool create OutputUpdateEvents
@@ -177,10 +181,6 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
     default:
       break;
     }
-    
-    jobRecordService.getCache().flush();
-    linkRecordService.getCache().flush();
-    variableRecordService.getCache().flush();
   }
   
   private void deleteRecords(String rootId) {

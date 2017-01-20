@@ -201,10 +201,6 @@ public class JobServiceImpl implements JobService {
     
     @Override
     public void onJobReady(Job job) {
-      jobRecordService.getCache().flush();
-      linkRecordService.getCache().flush();
-      variableRecordService.getCache().flush();
-      
       if (setResources) {
         long numberOfCores;
         long memory;

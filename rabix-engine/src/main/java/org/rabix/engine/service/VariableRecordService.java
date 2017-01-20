@@ -66,7 +66,9 @@ public class VariableRecordService {
       return records.get(0);
     }
     VariableRecord record = variableRecordRepository.get(jobId, portId, type, contextId);
-    cache.put(record, Action.UPDATE);
+    if (record != null) { // TODO why?
+      cache.put(record, Action.UPDATE);
+    }
     return record;
   }
 

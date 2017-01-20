@@ -20,6 +20,9 @@ import org.rabix.engine.processor.dispatcher.EventDispatcherFactory;
 import org.rabix.engine.processor.handler.EventHandlerException;
 import org.rabix.engine.processor.handler.HandlerFactory;
 import org.rabix.engine.service.ContextRecordService;
+import org.rabix.engine.service.JobRecordService;
+import org.rabix.engine.service.LinkRecordService;
+import org.rabix.engine.service.VariableRecordService;
 import org.rabix.engine.status.EngineStatusCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,10 +50,17 @@ public class EventProcessorImpl implements EventProcessor {
   private final ContextRecordService contextRecordService;
   
   private final ConcurrentMap<String, Integer> iterations = new ConcurrentHashMap<>();
+
+  private JobRecordService jobRecordService;
+  private VariableRecordService variableRecordService;
+  private LinkRecordService linkRecordService;
   
   @Inject
-  public EventProcessorImpl(HandlerFactory handlerFactory, EventDispatcherFactory eventDispatcherFactory, ContextRecordService contextRecordService) {
+  public EventProcessorImpl(JobRecordService jobRecordService, VariableRecordService variableRecordService, LinkRecordService linkRecordService, HandlerFactory handlerFactory, EventDispatcherFactory eventDispatcherFactory, ContextRecordService contextRecordService) {
     this.handlerFactory = handlerFactory;
+    this.jobRecordService = jobRecordService;
+    this.variableRecordService = variableRecordService;
+    this.linkRecordService = linkRecordService;
     this.contextRecordService = contextRecordService;
     this.eventDispatcher = eventDispatcherFactory.create(EventDispatcher.Type.SYNC);
   }
@@ -62,13 +72,25 @@ public class EventProcessorImpl implements EventProcessor {
       @Override
       public void run() {
         Event event = null;
+        String lastRootId = null;
         while (!stop.get()) {
           try {
             event = events.poll();
             if (event == null) {
+              if (lastRootId != null) {
+                jobRecordService.getCache().flush();
+                linkRecordService.getCache().flush();
+                variableRecordService.getCache().flush();
+              }
               running.set(false);
               Thread.sleep(SLEEP);
               continue;
+            }
+            if (event.getContextId() != lastRootId) {
+              jobRecordService.getCache().flush();
+              linkRecordService.getCache().flush();
+              variableRecordService.getCache().flush();
+              lastRootId = event.getContextId();
             }
             ContextRecord context = contextRecordService.find(event.getContextId());
             if (context != null && context.getStatus().equals(ContextStatus.FAILED)) {
