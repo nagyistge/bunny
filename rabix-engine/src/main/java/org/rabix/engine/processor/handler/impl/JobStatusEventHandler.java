@@ -99,6 +99,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
           } else {
             try {
               cacheService.flush(event.getContextId());
+              jobDB.add(job, null);
               engineStatusCallback.onJobReady(job);
             } catch (Exception e) {
               logger.error("Failed to call onReady callback for Job " + job.getId(), e);

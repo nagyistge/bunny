@@ -31,7 +31,6 @@ import org.rabix.engine.rest.api.impl.BackendHTTPServiceImpl;
 import org.rabix.engine.rest.api.impl.JobHTTPServiceImpl;
 import org.rabix.engine.rest.backend.BackendDispatcher;
 import org.rabix.engine.rest.backend.stub.BackendStubFactory;
-import org.rabix.engine.rest.db.BackendDB;
 import org.rabix.engine.rest.service.BackendService;
 import org.rabix.engine.rest.service.IntermediaryFilesService;
 import org.rabix.engine.rest.service.JobService;
@@ -64,7 +63,6 @@ public class ServerBuilder {
         Arrays.asList(new ServletModule(), new ConfigModule(configDir, null), new EngineModule(), new AbstractModule() {
           @Override
           protected void configure() {
-            bind(BackendDB.class).in(Scopes.SINGLETON);
             bind(JobService.class).to(JobServiceImpl.class).in(Scopes.SINGLETON);
             bind(BackendPopulator.class).in(Scopes.SINGLETON);
             bind(BackendService.class).to(BackendServiceImpl.class).in(Scopes.SINGLETON);

@@ -1,7 +1,9 @@
 package org.rabix.engine;
 
 import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
+import org.rabix.engine.db.BackendDB;
 import org.rabix.engine.db.DAGNodeDB;
+import org.rabix.engine.db.JobBackendService;
 import org.rabix.engine.db.JobDB;
 import org.rabix.engine.processor.EventProcessor;
 import org.rabix.engine.processor.dispatcher.EventDispatcherFactory;
@@ -29,12 +31,16 @@ public class EngineModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(JobDB.class).in(Scopes.SINGLETON);
+    bind(BackendDB.class).in(Scopes.SINGLETON);
     bind(DAGNodeDB.class).in(Scopes.SINGLETON);
+    
+    bind(JobBackendService.class).in(Scopes.SINGLETON);
     
     bind(JobRecordService.class).in(Scopes.SINGLETON);
     bind(VariableRecordService.class).in(Scopes.SINGLETON);
     bind(LinkRecordService.class).in(Scopes.SINGLETON);
     bind(ContextRecordService.class).in(Scopes.SINGLETON);
+    bind(JobBackendService.class).in(Scopes.SINGLETON);
 
     bind(ScatterHandler.class).in(Scopes.SINGLETON);
     bind(InitEventHandler.class).in(Scopes.SINGLETON);
@@ -57,7 +63,7 @@ public class EngineModule extends AbstractModule {
     source.setPortNumber(5432);
     source.setUser("postgres");
     source.setPassword("postgres");
-    source.setMaxConnections(100);
+    source.setMaxConnections(20);
 
     bind(DBI.class).toInstance(new DBI(source));
   }

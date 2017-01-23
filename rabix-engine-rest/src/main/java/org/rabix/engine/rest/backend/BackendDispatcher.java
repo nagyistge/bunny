@@ -3,13 +3,9 @@ package org.rabix.engine.rest.backend;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,10 +14,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.configuration.Configuration;
 import org.rabix.bindings.model.Job;
-import org.rabix.bindings.model.Job.JobStatus;
 import org.rabix.common.engine.control.EngineControlFreeMessage;
 import org.rabix.common.engine.control.EngineControlStopMessage;
+import org.rabix.engine.db.JobBackendService;
+import org.rabix.engine.db.JobBackendService.BackendJob;
 import org.rabix.engine.rest.backend.stub.BackendStub;
+import org.rabix.engine.rest.service.JobService;
 import org.rabix.transport.backend.Backend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +35,6 @@ public class BackendDispatcher {
   private final List<BackendStub<?,?,?>> backendStubs = new ArrayList<>();
   private final Map<String, Long> heartbeatInfo = new HashMap<>();
 
-  private final Set<Job> freeJobs = new HashSet<>();
-  private final ConcurrentMap<Job, String> jobBackendMapping = new ConcurrentHashMap<>();
-
   private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
   private ScheduledExecutorService heartbeatService = Executors.newSingleThreadScheduledExecutor();
 
@@ -49,8 +44,13 @@ public class BackendDispatcher {
   
   private final long heartbeatPeriod;
   
+  private final JobService jobService;
+  private final JobBackendService jobBackendService;
+  
   @Inject
-  public BackendDispatcher(Configuration configuration) {
+  public BackendDispatcher(Configuration configuration, JobBackendService jobBackendService, JobService jobService) {
+    this.jobService = jobService;
+    this.jobBackendService = jobBackendService;
     this.heartbeatPeriod = configuration.getLong("backend.cleaner.heartbeatPeriodMills", DEFAULT_HEARTBEAT_PERIOD);
     start();
   }
@@ -59,72 +59,48 @@ public class BackendDispatcher {
     executorService.scheduleAtFixedRate(new Runnable() {
       @Override
       public void run() {
-        try {
-          dispatcherLock.lock();
-          if (!backendStubs.isEmpty()) {
-            send(freeJobs.toArray(new Job[] {}));
-            freeJobs.clear();
-          }
-        } finally {
-          dispatcherLock.unlock();
-        }
+        schedule();
       }
     }, 0, 10, TimeUnit.SECONDS);
 
     heartbeatService.scheduleAtFixedRate(new HeartbeatMonitor(), 0, heartbeatPeriod, TimeUnit.MILLISECONDS);
   }
 
-  public boolean send(Job... jobs) {
-    try {
-      dispatcherLock.lock();
-      for (Job job : jobs) {
-        freeJobs.add(job);
-      }
+  public void send(Job... jobs) {
+    for (Job job : jobs) {
+      jobBackendService.insert(job.getId(), job.getRootId(), null);
+    }
+    schedule();
+  }
+  
+  private void schedule() {
+    if (backendStubs.isEmpty()) {
+      return;
+    }
 
-      if (backendStubs.isEmpty()) {
-        return false;
-      }
+    Set<BackendJob> freeJobs = jobBackendService.getFree();
+    for (BackendJob freeJob : freeJobs) {
+      BackendStub<?, ?, ?> backendStub = nextBackend();
 
-      Iterator<Job> freeJobIterator = freeJobs.iterator();
-      while (freeJobIterator.hasNext()) {
-        Job freeJob = freeJobIterator.next();
-
-        if (jobBackendMapping.containsKey(freeJob)) {
-          freeJobIterator.remove();
-          continue;
-        }
-        BackendStub<?,?,?> backendStub = nextBackend();
-
-        freeJobIterator.remove();
-        jobBackendMapping.put(freeJob, backendStub.getBackend().getId());
-        backendStub.send(freeJob);
-        logger.info("Job {} sent to {}.", freeJob.getId(), backendStub.getBackend().getId());
-      }
-      return true;
-    } finally {
-      dispatcherLock.unlock();
+      jobBackendService.update(freeJob.getJobId(), backendStub.getBackend().getId());
+      backendStub.send(jobService.get(freeJob.getJobId()));
+      logger.info("Job {} sent to {}.", freeJob.getJobId(), backendStub.getBackend().getId());
     }
   }
   
   public boolean stop(Job... jobs) {
-    try {
-      dispatcherLock.lock();
-      
-      for (Job job : jobs) {
-        String backendId = jobBackendMapping.get(job);
-        if (backendId != null) {
-          BackendStub<?,?,?> backendStub = getBackendStub(backendId);
-          if (backendStub != null) {
-            backendStub.send(new EngineControlStopMessage(job.getId(), job.getRootId()));
-          }
+    for (Job job : jobs) {
+      String backendId = jobBackendService.getByJobId(job.getId()).getBackendId();
+      if (backendId != null) {
+        BackendStub<?, ?, ?> backendStub = getBackendStub(backendId);
+        if (backendStub != null) {
+          backendStub.send(new EngineControlStopMessage(job.getId(), job.getRootId()));
         }
       }
-      return true;
-    } finally {
-      dispatcherLock.unlock();
     }
+    return true;
   }
-
+  
   public void addBackendStub(BackendStub<?,?,?> backendStub) {
     try {
       dispatcherLock.lock();
@@ -139,28 +115,20 @@ public class BackendDispatcher {
   public void freeBackend(Job rootJob) {
     Set<BackendStub<?,?,?>> backendStubs = new HashSet<>();
     
-    synchronized (jobBackendMapping) {
-      for (Entry<Job, String> jobBackendEntry : jobBackendMapping.entrySet()) {
-        if (jobBackendEntry.getKey().getRootId().equals(rootJob.getRootId())) {
-          backendStubs.add(getBackendStub(jobBackendEntry.getValue()));
-        }
-      }
-      
-      for (BackendStub<?, ?, ?> backendStub : backendStubs) {
-        backendStub.send(new EngineControlFreeMessage(rootJob.getConfig(), rootJob.getRootId()));
-      }
+    Set<BackendJob> backendJobs = jobBackendService.getByRootId(rootJob.getId());
+    for (BackendJob backendJob : backendJobs) {
+      backendStubs.add(getBackendStub(backendJob.getBackendId()));
+    }
+    
+    for (BackendStub<?, ?, ?> backendStub : backendStubs) {
+      backendStub.send(new EngineControlFreeMessage(rootJob.getConfig(), rootJob.getRootId()));
     }
   }
-
+  
   public void remove(Job job) {
-    try {
-      dispatcherLock.lock();
-      this.jobBackendMapping.remove(job);
-    } finally {
-      dispatcherLock.unlock();
-    }
+    jobBackendService.delete(job.getId());
   }
-
+  
   private BackendStub<?,?,?> nextBackend() {
     BackendStub<?,?,?> backendStub = backendStubs.get(position % backendStubs.size());
     position = (position + 1) % backendStubs.size();
@@ -182,26 +150,21 @@ public class BackendDispatcher {
       try {
         dispatcherLock.lock();
         logger.info("Checking Backend heartbeats...");
-        
+
         long currentTime = System.currentTimeMillis();
-        for (BackendStub<?,?,?> backendStub : backendStubs) {
+        for (BackendStub<?, ?, ?> backendStub : backendStubs) {
           Backend backend = backendStub.getBackend();
 
           if (currentTime - heartbeatInfo.get(backend.getId()) > heartbeatPeriod) {
             backendStub.stop();
             backendStubs.remove(backendStub);
             logger.info("Removing Backend {}", backendStub.getBackend().getId());
-            
-            List<Job> jobsToRemove = new ArrayList<>();
-            for (Entry<Job, String> jobBackendEntry : jobBackendMapping.entrySet()) {
-              if (jobBackendEntry.getValue().equals(backend.getId())) {
-                jobsToRemove.add(jobBackendEntry.getKey());
-              }
-            }
-            for (Job job : jobsToRemove) {
-              jobBackendMapping.remove(job);
-              freeJobs.add(Job.cloneWithStatus(job, JobStatus.READY));
-              logger.info("Reassign Job {} to free Jobs", job.getId());
+
+            Set<BackendJob> backendJobs = jobBackendService.getByBackendId(backend.getId());
+
+            for (BackendJob backendJob : backendJobs) {
+              jobBackendService.update(backendJob.getJobId(), null);
+              logger.info("Reassign Job {} to free Jobs", backendJob.getJobId());
             }
           }
         }

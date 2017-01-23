@@ -1,4 +1,4 @@
-package org.rabix.engine.rest.db;
+package org.rabix.engine.db;
 
 import org.rabix.common.json.BeanSerializer;
 import org.rabix.engine.dao.BackendRepository;
