@@ -54,7 +54,6 @@ import org.rabix.engine.rest.api.impl.BackendHTTPServiceImpl;
 import org.rabix.engine.rest.api.impl.JobHTTPServiceImpl;
 import org.rabix.engine.rest.backend.BackendDispatcher;
 import org.rabix.engine.rest.db.BackendDB;
-import org.rabix.engine.rest.db.JobDB;
 import org.rabix.engine.rest.service.BackendService;
 import org.rabix.engine.rest.service.IntermediaryFilesService;
 import org.rabix.engine.rest.service.JobService;
@@ -72,18 +71,18 @@ import org.rabix.executor.handler.impl.JobHandlerImpl;
 import org.rabix.executor.pathmapper.InputFileMapper;
 import org.rabix.executor.pathmapper.OutputFileMapper;
 import org.rabix.executor.pathmapper.local.LocalPathMapper;
+import org.rabix.executor.service.CacheService;
 import org.rabix.executor.service.ExecutorService;
 import org.rabix.executor.service.FilePermissionService;
 import org.rabix.executor.service.FileService;
 import org.rabix.executor.service.JobDataService;
 import org.rabix.executor.service.JobFitter;
-import org.rabix.executor.service.CacheService;
+import org.rabix.executor.service.impl.CacheServiceImpl;
 import org.rabix.executor.service.impl.ExecutorServiceImpl;
 import org.rabix.executor.service.impl.FilePermissionServiceImpl;
 import org.rabix.executor.service.impl.FileServiceImpl;
 import org.rabix.executor.service.impl.JobDataServiceImpl;
 import org.rabix.executor.service.impl.JobFitterImpl;
-import org.rabix.executor.service.impl.CacheServiceImpl;
 import org.rabix.executor.status.ExecutorStatusCallback;
 import org.rabix.executor.status.impl.NoOpExecutorStatusCallback;
 import org.rabix.ftp.SimpleFTPModule;
@@ -237,7 +236,6 @@ public class BackendCommandLine {
             protected void configure() {
               install(configModule);
               
-              bind(JobDB.class).in(Scopes.SINGLETON);
               bind(StorageConfiguration.class).to(DefaultStorageConfiguration.class).in(Scopes.SINGLETON);
               bind(BackendDB.class).in(Scopes.SINGLETON);
               bind(IntermediaryFilesService.class).to(IntermediaryFilesServiceLocalImpl.class).in(Scopes.SINGLETON);
