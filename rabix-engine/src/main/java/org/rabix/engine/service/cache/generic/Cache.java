@@ -11,9 +11,13 @@ import java.util.Map.Entry;
 
 import org.rabix.engine.dao.Repository;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Cache<C extends Cachable, R extends Repository<C>> {
 
+  private final static Logger logger = LoggerFactory.getLogger(Cache.class);
+  
   private R repository;
   private Class<C> entityClass;
   
@@ -66,7 +70,7 @@ public class Cache<C extends Cachable, R extends Repository<C>> {
     } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
     }
     cache.clear();
-    System.out.println("Flushed " + size + " items.");
+    logger.debug("Flushed " + size + " " + entityClass.getName() + " item(s).");
   }
   
   public void put(C cachable, Action action) {

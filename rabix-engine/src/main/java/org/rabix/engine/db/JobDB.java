@@ -21,6 +21,10 @@ public class JobDB {
     jobRepository.insert(job.getId(), job.getRootId(), JSONHelper.writeObject(job), null);
   }
   
+  public void add(Job job, String groupId) {
+    jobRepository.insert(job.getId(), job.getRootId(), JSONHelper.writeObject(job), groupId);
+  }
+  
   public void update(Job job) {
     jobRepository.update(job.getId(), JSONHelper.writeObject(job));
   }
@@ -35,5 +39,9 @@ public class JobDB {
   
   public Set<Job> getJobs(String rootId) {
     return jobRepository.getByRootId(rootId);
+  }
+  
+  public Set<Job> getJobsByGroupId(String groupId) {
+    return jobRepository.getJobsByGroupId(groupId);
   }
 }

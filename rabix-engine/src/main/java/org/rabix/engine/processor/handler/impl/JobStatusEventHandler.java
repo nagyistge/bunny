@@ -18,7 +18,7 @@ import org.rabix.bindings.model.dag.DAGNode;
 import org.rabix.common.helper.InternalSchemaHelper;
 import org.rabix.engine.JobHelper;
 import org.rabix.engine.db.DAGNodeDB;
-import org.rabix.engine.db.ReadyJobGroupsDB;
+import org.rabix.engine.db.JobDB;
 import org.rabix.engine.event.Event;
 import org.rabix.engine.event.impl.ContextStatusEvent;
 import org.rabix.engine.event.impl.InputUpdateEvent;
@@ -35,9 +35,9 @@ import org.rabix.engine.processor.handler.EventHandlerException;
 import org.rabix.engine.service.ContextRecordService;
 import org.rabix.engine.service.JobRecordService;
 import org.rabix.engine.service.JobRecordService.JobState;
-import org.rabix.engine.service.cache.generic.CacheService;
 import org.rabix.engine.service.LinkRecordService;
 import org.rabix.engine.service.VariableRecordService;
+import org.rabix.engine.service.cache.generic.CacheService;
 import org.rabix.engine.status.EngineStatusCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,11 +48,10 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
 
   private final Logger logger = LoggerFactory.getLogger(JobStatusEventHandler.class);
   
+  private final JobDB jobDB;
   private final DAGNodeDB dagNodeDB;
   private final ScatterHandler scatterHelper;
   private final EventProcessor eventProcessor;
-  
-  private final ReadyJobGroupsDB jobGroupsDB;
   
   private final JobRecordService jobRecordService;
   private final LinkRecordService linkRecordService;
@@ -64,11 +63,11 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
   private CacheService cacheService;
 
   @Inject
-  public JobStatusEventHandler(final DAGNodeDB dagNodeDB, final JobRecordService jobRecordService, final LinkRecordService linkRecordService, final VariableRecordService variableRecordService, final ContextRecordService contextRecordService, final EventProcessor eventProcessor, final ScatterHandler scatterHelper, final ReadyJobGroupsDB jobGroupsDB, final CacheService cacheService) {
+  public JobStatusEventHandler(final DAGNodeDB dagNodeDB, final JobDB jobDB, final JobRecordService jobRecordService, final LinkRecordService linkRecordService, final VariableRecordService variableRecordService, final ContextRecordService contextRecordService, final EventProcessor eventProcessor, final ScatterHandler scatterHelper, final CacheService cacheService) {
+    this.jobDB = jobDB;
     this.dagNodeDB = dagNodeDB;
     this.scatterHelper = scatterHelper;
     this.eventProcessor = eventProcessor;
-    this.jobGroupsDB = jobGroupsDB;
     this.cacheService = cacheService;
     this.jobRecordService = jobRecordService;
     this.linkRecordService = linkRecordService;
@@ -96,7 +95,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
         try {
           job = JobHelper.createReadyJob(jobRecord, JobStatus.READY, jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB);
           if (!StringUtils.isEmpty(event.getEventGroupId())) {
-            jobGroupsDB.add(event.getEventGroupId(), job);
+            jobDB.add(job, event.getEventGroupId());
           } else {
             try {
               cacheService.flush(event.getContextId());
@@ -190,7 +189,6 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
     jobRecordService.delete(rootId);
     variableRecordService.delete(rootId);
     linkRecordService.delete(rootId);
-    jobGroupsDB.delete(rootId);
   }
   
   /**

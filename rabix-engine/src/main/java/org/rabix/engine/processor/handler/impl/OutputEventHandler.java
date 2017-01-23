@@ -13,7 +13,7 @@ import org.rabix.common.helper.CloneHelper;
 import org.rabix.common.helper.InternalSchemaHelper;
 import org.rabix.engine.JobHelper;
 import org.rabix.engine.db.DAGNodeDB;
-import org.rabix.engine.db.ReadyJobGroupsDB;
+import org.rabix.engine.db.JobDB;
 import org.rabix.engine.event.Event;
 import org.rabix.engine.event.impl.InputUpdateEvent;
 import org.rabix.engine.event.impl.JobStatusEvent;
@@ -52,16 +52,16 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
     
   private final EventProcessor eventProcessor;
   
+  private JobDB jobDB;
   private DAGNodeDB dagNodeDB;
-  private ReadyJobGroupsDB jobGroupsDB;
   private EngineStatusCallback engineStatusCallback;
   
   private CacheService cacheService;
   
   @Inject
-  public OutputEventHandler(EventProcessor eventProcessor, JobRecordService jobService, VariableRecordService variableService, LinkRecordService linkService, ContextRecordService contextService, DAGNodeDB dagNodeDB, ReadyJobGroupsDB jobGroupsDB, CacheService cacheService) {
+  public OutputEventHandler(EventProcessor eventProcessor, JobRecordService jobService, VariableRecordService variableService, LinkRecordService linkService, ContextRecordService contextService, DAGNodeDB dagNodeDB, JobDB jobDB, CacheService cacheService) {
     this.dagNodeDB = dagNodeDB;
-    this.jobGroupsDB = jobGroupsDB;
+    this.jobDB = jobDB;
     this.jobService = jobService;
     this.linkService = linkService;
     this.contextService = contextService;
@@ -218,7 +218,7 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
       }
       
       if (event.getEventGroupId() != null && event.getEventGroupId().equals(sourceJob.getExternalId()) && sourceJob.isCompleted()) {
-        Set<Job> readyJobs = jobGroupsDB.get(event.getContextId(), event.getEventGroupId());
+        Set<Job> readyJobs = jobDB.getJobsByGroupId(event.getEventGroupId());
         try {
           cacheService.flush(event.getContextId());
           engineStatusCallback.onJobsReady(readyJobs);

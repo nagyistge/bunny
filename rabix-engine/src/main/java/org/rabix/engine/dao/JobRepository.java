@@ -33,10 +33,13 @@ public interface JobRepository {
   @SqlQuery("select * from job where root_id=:root_id")
   Set<Job> getByRootId(@Bind("root_id") String rootId);
   
+  @SqlQuery("select * from job where group_id=:group_id")
+  Set<Job> getJobsByGroupId(@Bind("group_id") String group_id);
+  
   public static class JobMapper implements ResultSetMapper<Job> {
     public Job map(int index, ResultSet r, StatementContext ctx) throws SQLException {
       return BeanSerializer.deserialize(r.getString("job"), Job.class);
     }
   }
-  
+
 }
