@@ -35,6 +35,7 @@ import org.rabix.engine.processor.handler.EventHandlerException;
 import org.rabix.engine.service.ContextRecordService;
 import org.rabix.engine.service.JobRecordService;
 import org.rabix.engine.service.JobRecordService.JobState;
+import org.rabix.engine.service.cache.generic.CacheService;
 import org.rabix.engine.service.LinkRecordService;
 import org.rabix.engine.service.VariableRecordService;
 import org.rabix.engine.status.EngineStatusCallback;
@@ -60,12 +61,15 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
   
   private EngineStatusCallback engineStatusCallback;
 
+  private CacheService cacheService;
+
   @Inject
-  public JobStatusEventHandler(final DAGNodeDB dagNodeDB, final JobRecordService jobRecordService, final LinkRecordService linkRecordService, final VariableRecordService variableRecordService, final ContextRecordService contextRecordService, final EventProcessor eventProcessor, final ScatterHandler scatterHelper, final ReadyJobGroupsDB jobGroupsDB) {
+  public JobStatusEventHandler(final DAGNodeDB dagNodeDB, final JobRecordService jobRecordService, final LinkRecordService linkRecordService, final VariableRecordService variableRecordService, final ContextRecordService contextRecordService, final EventProcessor eventProcessor, final ScatterHandler scatterHelper, final ReadyJobGroupsDB jobGroupsDB, final CacheService cacheService) {
     this.dagNodeDB = dagNodeDB;
     this.scatterHelper = scatterHelper;
     this.eventProcessor = eventProcessor;
     this.jobGroupsDB = jobGroupsDB;
+    this.cacheService = cacheService;
     this.jobRecordService = jobRecordService;
     this.linkRecordService = linkRecordService;
     this.contextRecordService = contextRecordService;
@@ -95,6 +99,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
             jobGroupsDB.add(event.getEventGroupId(), job);
           } else {
             try {
+              cacheService.flush(event.getContextId());
               engineStatusCallback.onJobReady(job);
             } catch (Exception e) {
               logger.error("Failed to call onReady callback for Job " + job.getId(), e);
@@ -127,9 +132,7 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
       break;
     case COMPLETED:
       if (jobRecord.isRoot()) {
-        jobRecordService.getCache().flush();
-        linkRecordService.getCache().flush();
-        variableRecordService.getCache().flush();
+        cacheService.flush(jobRecord.getRootId());
         
         try {
           if(!jobRecord.isContainer()) {

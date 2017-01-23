@@ -30,6 +30,7 @@ import org.rabix.engine.service.JobRecordService;
 import org.rabix.engine.service.JobRecordService.JobState;
 import org.rabix.engine.service.LinkRecordService;
 import org.rabix.engine.service.VariableRecordService;
+import org.rabix.engine.service.cache.generic.CacheService;
 import org.rabix.engine.status.EngineStatusCallback;
 import org.rabix.engine.status.EngineStatusCallbackException;
 import org.slf4j.Logger;
@@ -55,8 +56,10 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
   private ReadyJobGroupsDB jobGroupsDB;
   private EngineStatusCallback engineStatusCallback;
   
+  private CacheService cacheService;
+  
   @Inject
-  public OutputEventHandler(EventProcessor eventProcessor, JobRecordService jobService, VariableRecordService variableService, LinkRecordService linkService, ContextRecordService contextService, DAGNodeDB dagNodeDB, ReadyJobGroupsDB jobGroupsDB) {
+  public OutputEventHandler(EventProcessor eventProcessor, JobRecordService jobService, VariableRecordService variableService, LinkRecordService linkService, ContextRecordService contextService, DAGNodeDB dagNodeDB, ReadyJobGroupsDB jobGroupsDB, CacheService cacheService) {
     this.dagNodeDB = dagNodeDB;
     this.jobGroupsDB = jobGroupsDB;
     this.jobService = jobService;
@@ -64,6 +67,7 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
     this.contextService = contextService;
     this.variableService = variableService;
     this.eventProcessor = eventProcessor;
+    this.cacheService = cacheService;
   }
 
   public void initialize(EngineStatusCallback engineStatusCallback) {
@@ -216,6 +220,7 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
       if (event.getEventGroupId() != null && event.getEventGroupId().equals(sourceJob.getExternalId()) && sourceJob.isCompleted()) {
         Set<Job> readyJobs = jobGroupsDB.get(event.getContextId(), event.getEventGroupId());
         try {
+          cacheService.flush(event.getContextId());
           engineStatusCallback.onJobsReady(readyJobs);
         } catch (EngineStatusCallbackException e) {
           logger.error("Failed to call onJobsReady() callback", e);

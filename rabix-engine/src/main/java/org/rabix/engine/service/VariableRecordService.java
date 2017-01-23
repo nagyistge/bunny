@@ -10,6 +10,7 @@ import org.rabix.engine.dao.VariableRecordRepository;
 import org.rabix.engine.model.VariableRecord;
 import org.rabix.engine.model.VariableRecord.VariableRecordCacheKey;
 import org.rabix.engine.service.cache.generic.Cache;
+import org.rabix.engine.service.cache.generic.CacheService;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
 
 import com.google.inject.Inject;
@@ -17,15 +18,16 @@ import com.google.inject.Inject;
 public class VariableRecordService {
 
   private VariableRecordRepository variableRecordRepository;
-  private Cache<VariableRecord, Repository<VariableRecord>> cache;
+  private CacheService cacheService;
 
   @Inject
-  public VariableRecordService(VariableRecordRepository variableRecordRepository) {
+  public VariableRecordService(VariableRecordRepository variableRecordRepository, CacheService cacheService) {
+    this.cacheService = cacheService;
     this.variableRecordRepository = variableRecordRepository;
-    this.cache = new Cache<VariableRecord, Repository<VariableRecord>>(variableRecordRepository, VariableRecord.class);
   }
   
   public void create(VariableRecord variableRecord) {
+    Cache cache = cacheService.getCache(variableRecord.getContextId(), "VARIABLE_RECORD");
     cache.put(variableRecord, Action.INSERT);
   }
   
@@ -33,10 +35,12 @@ public class VariableRecordService {
   }
 
   public void update(VariableRecord variableRecord) {
+    Cache cache = cacheService.getCache(variableRecord.getContextId(), "VARIABLE_RECORD");
     cache.put(variableRecord, Action.UPDATE);
   }
   
   public List<VariableRecord> find(String jobId, LinkPortType type, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "VARIABLE_RECORD");
     List<VariableRecord> records = cache.get(new VariableRecordCacheKey(jobId, null, contextId, type));
     if (!records.isEmpty()) {
       return records;
@@ -49,6 +53,7 @@ public class VariableRecordService {
   }
   
   public List<VariableRecord> find(String jobId, String portId, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "VARIABLE_RECORD");
     List<VariableRecord> records = cache.get(new VariableRecordCacheKey(jobId, portId, contextId, null));
     if (!records.isEmpty()) {
       return records;
@@ -61,6 +66,7 @@ public class VariableRecordService {
   }
 
   public VariableRecord find(String jobId, String portId, LinkPortType type, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "VARIABLE_RECORD");
     List<VariableRecord> records = cache.get(new VariableRecordCacheKey(jobId, portId, contextId, type));
     if (!records.isEmpty()) {
       return records.get(0);
@@ -163,8 +169,4 @@ public class VariableRecordService {
     return linkMerge(variableRecord);
   }
 
-  public Cache<VariableRecord, Repository<VariableRecord>> getCache() {
-    return cache;
-  }
-  
 }

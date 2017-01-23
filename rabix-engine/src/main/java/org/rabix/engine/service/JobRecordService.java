@@ -6,11 +6,11 @@ import java.util.UUID;
 import org.rabix.bindings.model.dag.DAGLinkPort;
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.engine.dao.JobRecordRepository;
-import org.rabix.engine.dao.Repository;
 import org.rabix.engine.model.JobRecord;
 import org.rabix.engine.model.JobRecord.PortCounter;
 import org.rabix.engine.service.cache.generic.Cache;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
+import org.rabix.engine.service.cache.generic.CacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,17 +28,13 @@ public class JobRecordService {
     FAILED
   }
 
-  private Cache<JobRecord, Repository<JobRecord>> cache;
+  private CacheService cacheService;
   private JobRecordRepository jobRecordRepository;
   
   @Inject
-  public JobRecordService(JobRecordRepository jobRecordRepository) {
-    this.cache = new Cache<JobRecord, Repository<JobRecord>>(jobRecordRepository, JobRecord.class);
+  public JobRecordService(JobRecordRepository jobRecordRepository, CacheService cacheService) {
+    this.cacheService = cacheService;
     this.jobRecordRepository = jobRecordRepository;
-  }
-  
-  public Cache<JobRecord, Repository<JobRecord>> getCache() {
-    return cache;
   }
   
   public static String generateUniqueId() {
@@ -46,6 +42,7 @@ public class JobRecordService {
   }
   
   public void create(JobRecord jobRecord) {
+    Cache cache = cacheService.getCache(jobRecord.getRootId(), jobRecord.getName());
     cache.put(jobRecord, Action.INSERT);
   }
 
@@ -53,6 +50,7 @@ public class JobRecordService {
   }
   
   public void update(JobRecord jobRecord) {
+    Cache cache = cacheService.getCache(jobRecord.getRootId(), jobRecord.getName());
     cache.put(jobRecord, Action.UPDATE);
   }
   
@@ -62,6 +60,7 @@ public class JobRecordService {
   }
   
   public JobRecord find(String id, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "JOB_RECORD");
     List<JobRecord> records = (List<JobRecord>) cache.get(new JobRecord.JobCacheKey(id, contextId));
     if (!records.isEmpty()) {
       return records.get(0);

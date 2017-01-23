@@ -30,4 +30,12 @@ public interface EventProcessor {
     
   }
   
+  public static class EventProcessorDispatcher {
+    
+    public static int dispatch(String rootId, int numberOfEventProcessors) {
+      return Math.abs(rootId.hashCode() % numberOfEventProcessors);
+    }
+    
+  }
+  
 }

@@ -37,13 +37,16 @@ public class Cache<C extends Cachable, R extends Repository<C>> {
     List<CacheItem<C>> inserts = new ArrayList<>();
     List<CacheItem<C>> updates = new ArrayList<>();
     
+    int size = 0;
     for (CacheItem<C> item : items) {
       switch (item.action) {
       case INSERT:
         inserts.add(item);
+        size++;
         break;
       case UPDATE:
         updates.add(item);
+        size++;
         break;
       default:
         break;
@@ -51,22 +54,19 @@ public class Cache<C extends Cachable, R extends Repository<C>> {
     }
     
     try {
-      StringBuilder cacheLog = new StringBuilder();
       Method insertMethod = repository.getClass().getMethod("insert", entityClass);
       for (CacheItem<C> item : inserts) {
         insertMethod.invoke(repository, item.cachable);
-        cacheLog.append("insert " + item.cachable);
       }
 
       Method updateMethod = repository.getClass().getMethod("update", entityClass);
       for (CacheItem<C> item : updates) {
         updateMethod.invoke(repository, item.cachable);
-        cacheLog.append("update " + item.cachable);
       }
-      System.out.println("Cache log \n" + cacheLog.toString());
     } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
     }
     cache.clear();
+    System.out.println("Flushed " + size + " items.");
   }
   
   public void put(C cachable, Action action) {

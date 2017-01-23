@@ -38,6 +38,11 @@ public class JobRecord implements Cachable {
   private ScatterStrategy scatterStrategy;
   
   @Override
+  public String getName() {
+    return "JOB_RECORD";
+  }
+  
+  @Override
   public CacheKey generateKey() {
     return new JobCacheKey(this);
   }

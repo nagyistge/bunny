@@ -29,6 +29,11 @@ public class LinkRecord implements Cachable {
     this.destinationVarType = destinationVarType;
   }
 
+  @Override
+  public String getName() {
+    return "LINK_RECORD";
+  }
+  
   public String getContextId() {
     return contextId;
   }

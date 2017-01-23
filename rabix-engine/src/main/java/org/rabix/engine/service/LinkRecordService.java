@@ -4,27 +4,27 @@ import java.util.List;
 
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.engine.dao.LinkRecordRepository;
-import org.rabix.engine.dao.Repository;
-import org.rabix.engine.model.JobRecord;
 import org.rabix.engine.model.LinkRecord;
 import org.rabix.engine.model.LinkRecord.LinkRecordCacheKey;
 import org.rabix.engine.service.cache.generic.Cache;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
+import org.rabix.engine.service.cache.generic.CacheService;
 
 import com.google.inject.Inject;
 
 public class LinkRecordService {
 
+  private CacheService cacheService;
   private LinkRecordRepository linkRecordRepository;
-  private Cache<LinkRecord, Repository<LinkRecord>> cache;
   
   @Inject
-  public LinkRecordService(LinkRecordRepository linkRecordRepository) {
+  public LinkRecordService(LinkRecordRepository linkRecordRepository, CacheService cacheService) {
+    this.cacheService = cacheService;
     this.linkRecordRepository = linkRecordRepository;
-    this.cache = new Cache<LinkRecord, Repository<LinkRecord>>(linkRecordRepository, LinkRecord.class);
   }
   
   public void create(LinkRecord link) {
+    Cache cache = cacheService.getCache(link.getContextId(), "LINK_RECORD");
     cache.put(link, Action.INSERT);
   }
 
@@ -32,6 +32,7 @@ public class LinkRecordService {
   }
   
   public List<LinkRecord> findBySourceJobId(String jobId, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "LINK_RECORD");
     List<LinkRecord> records = cache.get(new LinkRecordCacheKey(contextId, jobId, null, null, null, null, null));
     if (!records.isEmpty()) {
       return records;
@@ -44,6 +45,7 @@ public class LinkRecordService {
   }
   
   public List<LinkRecord> findBySourceAndSourceType(String jobId, LinkPortType varType, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "LINK_RECORD");
     List<LinkRecord> records = cache.get(new LinkRecordCacheKey(contextId, jobId, null, varType, null, null, null));
     if (!records.isEmpty()) {
       return records;
@@ -56,6 +58,7 @@ public class LinkRecordService {
   }
   
   public List<LinkRecord> findBySource(String jobId, String portId, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "LINK_RECORD");
     List<LinkRecord> records = cache.get(new LinkRecordCacheKey(contextId, jobId, portId, null, null, null, null));
     if (!records.isEmpty()) {
       return records;
@@ -68,6 +71,7 @@ public class LinkRecordService {
   }
   
   public List<LinkRecord> findBySourceAndDestinationType(String jobId, String portId, LinkPortType varType, String contextId) {
+    Cache cache = cacheService.getCache(contextId, "LINK_RECORD");
     List<LinkRecord> records = cache.get(new LinkRecordCacheKey(contextId, jobId, portId, null, null, null, varType));
     if (!records.isEmpty()) {
       return records;
@@ -77,10 +81,6 @@ public class LinkRecordService {
       cache.put(linkRecord, Action.UPDATE);
     }
     return records;
-  }
-
-  public Cache<LinkRecord, Repository<LinkRecord>> getCache() {
-    return cache;
   }
 
 }

@@ -2,6 +2,7 @@ package org.rabix.engine;
 
 import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
 import org.rabix.engine.db.DAGNodeDB;
+import org.rabix.engine.db.JobDB;
 import org.rabix.engine.db.ReadyJobGroupsDB;
 import org.rabix.engine.processor.EventProcessor;
 import org.rabix.engine.processor.dispatcher.EventDispatcherFactory;
@@ -17,7 +18,7 @@ import org.rabix.engine.service.ContextRecordService;
 import org.rabix.engine.service.JobRecordService;
 import org.rabix.engine.service.LinkRecordService;
 import org.rabix.engine.service.VariableRecordService;
-import org.rabix.engine.service.cache.generic.Cachable;
+import org.rabix.engine.service.cache.generic.CacheService;
 import org.skife.jdbi.v2.DBI;
 
 import com.github.mlk.guice.JdbiModule;
@@ -28,6 +29,7 @@ public class EngineModule extends AbstractModule {
 
   @Override
   protected void configure() {
+    bind(JobDB.class).in(Scopes.SINGLETON);
     bind(DAGNodeDB.class).in(Scopes.SINGLETON);
     bind(ReadyJobGroupsDB.class).in(Scopes.SINGLETON);
     
@@ -46,16 +48,18 @@ public class EngineModule extends AbstractModule {
     bind(HandlerFactory.class).in(Scopes.SINGLETON);
     bind(EventDispatcherFactory.class).in(Scopes.SINGLETON);
     bind(EventProcessor.class).to(MultiEventProcessorImpl.class).in(Scopes.SINGLETON);
+
+    bind(CacheService.class).in(Scopes.SINGLETON);
     
     install(JdbiModule.builder().scan("org.rabix.engine.dao").build());
     Jdbc3PoolingDataSource source = new Jdbc3PoolingDataSource();
     source.setDataSourceName("Data Source");
     source.setServerName("localhost");
     source.setDatabaseName("bunny");
-    source.setPortNumber(5433);
+    source.setPortNumber(5432);
     source.setUser("postgres");
     source.setPassword("postgres");
-    source.setMaxConnections(10);
+    source.setMaxConnections(100);
 
     bind(DBI.class).toInstance(new DBI(source));
   }

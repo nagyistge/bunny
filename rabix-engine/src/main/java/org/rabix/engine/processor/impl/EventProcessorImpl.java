@@ -9,6 +9,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.rabix.engine.dao.TransactionHelper;
+import org.rabix.engine.dao.TransactionHelper.TransactionCallback;
+import org.rabix.engine.dao.TransactionHelper.TransactionException;
 import org.rabix.engine.event.Event;
 import org.rabix.engine.event.Event.EventType;
 import org.rabix.engine.event.impl.ContextStatusEvent;
@@ -20,9 +23,6 @@ import org.rabix.engine.processor.dispatcher.EventDispatcherFactory;
 import org.rabix.engine.processor.handler.EventHandlerException;
 import org.rabix.engine.processor.handler.HandlerFactory;
 import org.rabix.engine.service.ContextRecordService;
-import org.rabix.engine.service.JobRecordService;
-import org.rabix.engine.service.LinkRecordService;
-import org.rabix.engine.service.VariableRecordService;
 import org.rabix.engine.status.EngineStatusCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,16 +51,12 @@ public class EventProcessorImpl implements EventProcessor {
   
   private final ConcurrentMap<String, Integer> iterations = new ConcurrentHashMap<>();
 
-  private JobRecordService jobRecordService;
-  private VariableRecordService variableRecordService;
-  private LinkRecordService linkRecordService;
-  
+  private final TransactionHelper transationHelper;
+
   @Inject
-  public EventProcessorImpl(JobRecordService jobRecordService, VariableRecordService variableRecordService, LinkRecordService linkRecordService, HandlerFactory handlerFactory, EventDispatcherFactory eventDispatcherFactory, ContextRecordService contextRecordService) {
+  public EventProcessorImpl(HandlerFactory handlerFactory, EventDispatcherFactory eventDispatcherFactory, ContextRecordService contextRecordService, TransactionHelper transactionHelper) {
     this.handlerFactory = handlerFactory;
-    this.jobRecordService = jobRecordService;
-    this.variableRecordService = variableRecordService;
-    this.linkRecordService = linkRecordService;
+    this.transationHelper = transactionHelper;
     this.contextRecordService = contextRecordService;
     this.eventDispatcher = eventDispatcherFactory.create(EventDispatcher.Type.SYNC);
   }
@@ -72,25 +68,13 @@ public class EventProcessorImpl implements EventProcessor {
       @Override
       public void run() {
         Event event = null;
-        String lastRootId = null;
         while (!stop.get()) {
           try {
             event = events.poll();
             if (event == null) {
-              if (lastRootId != null) {
-                jobRecordService.getCache().flush();
-                linkRecordService.getCache().flush();
-                variableRecordService.getCache().flush();
-              }
               running.set(false);
               Thread.sleep(SLEEP);
               continue;
-            }
-            if (event.getContextId() != lastRootId) {
-              jobRecordService.getCache().flush();
-              linkRecordService.getCache().flush();
-              variableRecordService.getCache().flush();
-              lastRootId = event.getContextId();
             }
             ContextRecord context = contextRecordService.find(event.getContextId());
             if (context != null && context.getStatus().equals(ContextStatus.FAILED)) {
@@ -98,7 +82,19 @@ public class EventProcessorImpl implements EventProcessor {
               continue;
             }
             running.set(true);
-            handlerFactory.get(event.getType()).handle(event);
+            
+            final Event finalEvent = event;
+            transationHelper.call(new TransactionCallback<Void>() {
+              @Override
+              public Void call() throws TransactionException {
+                try {
+                  handlerFactory.get(finalEvent.getType()).handle(finalEvent);
+                } catch (EventHandlerException e) {
+                  throw new TransactionException(e);
+                }
+                return null;
+              }
+            });
 
             Integer iteration = iterations.get(event.getContextId());
             if (iteration == null) {

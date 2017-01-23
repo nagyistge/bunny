@@ -32,6 +32,11 @@ public class VariableRecord implements Cachable {
     this.linkMerge = linkMerge;
   }
 
+  @Override
+  public String getName() {
+    return "VARIABLE_RECORD";
+  }
+  
   public String getContextId() {
     return contextId;
   }
