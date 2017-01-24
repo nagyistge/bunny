@@ -81,7 +81,7 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
       return;
     }
     sourceJob.decrementPortCounter(event.getPortId(), LinkPortType.OUTPUT);
-    sourceVariable.addValue(event.getValue(), event.getPosition());
+    sourceVariable.addValue(event.getValue(), event.getPosition(), sourceJob.isScatterWrapper());
     jobService.update(sourceJob);
     
     if (sourceJob.isCompleted()) {
