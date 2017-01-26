@@ -2,6 +2,7 @@ package org.rabix.engine.service;
 
 import org.rabix.engine.dao.ContextRecordRepository;
 import org.rabix.engine.model.ContextRecord;
+import org.rabix.engine.singleton.RepositoriesFactory;
 
 import com.google.inject.Inject;
 
@@ -10,8 +11,8 @@ public class ContextRecordService {
   private ContextRecordRepository contextRecordRepository;
   
   @Inject
-  public ContextRecordService(ContextRecordRepository contextRecordRepository) {
-    this.contextRecordRepository = contextRecordRepository;
+  public ContextRecordService(RepositoriesFactory repositoriesFactory) {
+    this.contextRecordRepository = repositoriesFactory.getRepositories().contextRecordRepository();
   }
   
   public synchronized void create(ContextRecord contextRecord) {

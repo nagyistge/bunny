@@ -5,6 +5,7 @@ import java.util.Set;
 import org.rabix.bindings.model.Job;
 import org.rabix.common.helper.JSONHelper;
 import org.rabix.engine.dao.JobRepository;
+import org.rabix.engine.singleton.RepositoriesFactory;
 
 import com.google.inject.Inject;
 
@@ -13,8 +14,8 @@ public class JobDB {
   private JobRepository jobRepository;
 
   @Inject
-  public JobDB(JobRepository jobRepository) {
-    this.jobRepository = jobRepository;
+  public JobDB(RepositoriesFactory factory) {
+    this.jobRepository = factory.getRepositories().jobRepository();
   }
   
   public void add(Job job) {

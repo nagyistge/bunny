@@ -5,13 +5,13 @@ import java.util.Collection;
 import java.util.List;
 
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
-import org.rabix.engine.dao.Repository;
 import org.rabix.engine.dao.VariableRecordRepository;
 import org.rabix.engine.model.VariableRecord;
 import org.rabix.engine.model.VariableRecord.VariableRecordCacheKey;
 import org.rabix.engine.service.cache.generic.Cache;
-import org.rabix.engine.service.cache.generic.CacheService;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
+import org.rabix.engine.service.cache.generic.CacheService;
+import org.rabix.engine.singleton.RepositoriesFactory;
 
 import com.google.inject.Inject;
 
@@ -21,9 +21,9 @@ public class VariableRecordService {
   private CacheService cacheService;
 
   @Inject
-  public VariableRecordService(VariableRecordRepository variableRecordRepository, CacheService cacheService) {
+  public VariableRecordService(RepositoriesFactory repositoriesFactory, CacheService cacheService) {
     this.cacheService = cacheService;
-    this.variableRecordRepository = variableRecordRepository;
+    this.variableRecordRepository = repositoriesFactory.getRepositories().variableRecordRepository();
   }
   
   public void create(VariableRecord variableRecord) {

@@ -9,9 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.rabix.engine.dao.TransactionHelper;
-import org.rabix.engine.dao.TransactionHelper.TransactionCallback;
-import org.rabix.engine.dao.TransactionHelper.TransactionException;
+import org.rabix.engine.dao.Repositories.TransactionCallback;
+import org.rabix.engine.dao.Repositories.TransactionException;
 import org.rabix.engine.event.Event;
 import org.rabix.engine.event.Event.EventType;
 import org.rabix.engine.event.impl.ContextStatusEvent;
@@ -23,6 +22,7 @@ import org.rabix.engine.processor.dispatcher.EventDispatcherFactory;
 import org.rabix.engine.processor.handler.EventHandlerException;
 import org.rabix.engine.processor.handler.HandlerFactory;
 import org.rabix.engine.service.ContextRecordService;
+import org.rabix.engine.singleton.RepositoriesFactory;
 import org.rabix.engine.status.EngineStatusCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,12 +51,12 @@ public class EventProcessorImpl implements EventProcessor {
   
   private final ConcurrentMap<String, Integer> iterations = new ConcurrentHashMap<>();
 
-  private final TransactionHelper transationHelper;
+  private final RepositoriesFactory repositoriesFactory;
 
   @Inject
-  public EventProcessorImpl(HandlerFactory handlerFactory, EventDispatcherFactory eventDispatcherFactory, ContextRecordService contextRecordService, TransactionHelper transactionHelper) {
+  public EventProcessorImpl(HandlerFactory handlerFactory, EventDispatcherFactory eventDispatcherFactory, ContextRecordService contextRecordService, RepositoriesFactory repositoriesFactory) {
     this.handlerFactory = handlerFactory;
-    this.transationHelper = transactionHelper;
+    this.repositoriesFactory = repositoriesFactory;
     this.contextRecordService = contextRecordService;
     this.eventDispatcher = eventDispatcherFactory.create(EventDispatcher.Type.SYNC);
   }
@@ -64,6 +64,7 @@ public class EventProcessorImpl implements EventProcessor {
   public void start(final List<IterationCallback> iterationCallbacks, EngineStatusCallback engineStatusCallback) {
     this.handlerFactory.initialize(engineStatusCallback);
     
+    AtomicBoolean shouldContinueLoop = new AtomicBoolean(false);
     executorService.execute(new Runnable() {
       @Override
       public void run() {
@@ -76,18 +77,20 @@ public class EventProcessorImpl implements EventProcessor {
               Thread.sleep(SLEEP);
               continue;
             }
-            ContextRecord context = contextRecordService.find(event.getContextId());
-            if (context != null && context.getStatus().equals(ContextStatus.FAILED)) {
-              logger.info("Skip event {}. Context {} has been invalidated.", event, context.getId());
-              continue;
-            }
-            running.set(true);
             
             final Event finalEvent = event;
-            transationHelper.call(new TransactionCallback<Void>() {
+            repositoriesFactory.getRepositories().doInTransaction(new TransactionCallback<Void>() {
               @Override
               public Void call() throws TransactionException {
                 try {
+                  ContextRecord context = contextRecordService.find(finalEvent.getContextId());
+                  if (context != null && context.getStatus().equals(ContextStatus.FAILED)) {
+                    logger.info("Skip event {}. Context {} has been invalidated.", finalEvent, context.getId());
+                    shouldContinueLoop.set(true);
+                    return null;
+                  }
+                  
+                  running.set(true);
                   handlerFactory.get(finalEvent.getType()).handle(finalEvent);
                 } catch (EventHandlerException e) {
                   throw new TransactionException(e);
@@ -96,6 +99,11 @@ public class EventProcessorImpl implements EventProcessor {
               }
             });
 
+            if (shouldContinueLoop.get()) {
+              shouldContinueLoop.set(false);
+              continue;
+            }
+            
             Integer iteration = iterations.get(event.getContextId());
             if (iteration == null) {
               iteration = 0;

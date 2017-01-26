@@ -11,6 +11,7 @@ import org.rabix.engine.model.JobRecord;
 import org.rabix.engine.model.LinkRecord;
 import org.rabix.engine.model.VariableRecord;
 import org.rabix.engine.processor.EventProcessor.EventProcessorDispatcher;
+import org.rabix.engine.singleton.RepositoriesFactory;
 
 import com.google.inject.Inject;
 
@@ -25,11 +26,11 @@ public class CacheService {
   private Configuration configuration;
   
   @Inject
-  public CacheService(JobRecordRepository jobRecordRepository, VariableRecordRepository variableRecordRepository, LinkRecordRepository linkRecordRepository, Configuration configuration) {
+  public CacheService(RepositoriesFactory repositoriesFactory, Configuration configuration) {
     this.configuration = configuration;
-    this.jobRecordRepository = jobRecordRepository;
-    this.linkRecordRepository = linkRecordRepository;
-    this.variableRecordRepository = variableRecordRepository;
+    this.jobRecordRepository = repositoriesFactory.getRepositories().jobRecordRepository();
+    this.linkRecordRepository = repositoriesFactory.getRepositories().linkRecordRepository();
+    this.variableRecordRepository = repositoriesFactory.getRepositories().variableRecordRepository();
   }
   
   public Cache getCache(String rootId, String entity) {

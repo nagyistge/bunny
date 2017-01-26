@@ -8,6 +8,7 @@ import org.rabix.engine.model.LinkRecord;
 import org.rabix.engine.model.LinkRecord.LinkRecordCacheKey;
 import org.rabix.engine.service.cache.generic.Cache;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
+import org.rabix.engine.singleton.RepositoriesFactory;
 import org.rabix.engine.service.cache.generic.CacheService;
 
 import com.google.inject.Inject;
@@ -18,9 +19,9 @@ public class LinkRecordService {
   private LinkRecordRepository linkRecordRepository;
   
   @Inject
-  public LinkRecordService(LinkRecordRepository linkRecordRepository, CacheService cacheService) {
+  public LinkRecordService(RepositoriesFactory repositoriesFactory, CacheService cacheService) {
     this.cacheService = cacheService;
-    this.linkRecordRepository = linkRecordRepository;
+    this.linkRecordRepository = repositoriesFactory.getRepositories().linkRecordRepository();
   }
   
   public void create(LinkRecord link) {

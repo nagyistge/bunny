@@ -3,6 +3,7 @@ package org.rabix.engine.db;
 import org.rabix.bindings.model.dag.DAGNode;
 import org.rabix.common.helper.JSONHelper;
 import org.rabix.engine.dao.DAGRepository;
+import org.rabix.engine.singleton.RepositoriesFactory;
 
 import com.google.inject.Inject;
 
@@ -14,8 +15,8 @@ public class DAGNodeDB {
   private DAGRepository dagRepository;
 
   @Inject
-  public DAGNodeDB(DAGRepository dagRepository) {
-    this.dagRepository = dagRepository;
+  public DAGNodeDB(RepositoriesFactory repositoriesFactory) {
+    this.dagRepository = repositoriesFactory.getRepositories().dagRepository();
   }
   
   /**

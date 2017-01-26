@@ -10,6 +10,7 @@ import org.rabix.engine.model.JobRecord;
 import org.rabix.engine.model.JobRecord.PortCounter;
 import org.rabix.engine.service.cache.generic.Cache;
 import org.rabix.engine.service.cache.generic.CacheItem.Action;
+import org.rabix.engine.singleton.RepositoriesFactory;
 import org.rabix.engine.service.cache.generic.CacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +33,9 @@ public class JobRecordService {
   private JobRecordRepository jobRecordRepository;
   
   @Inject
-  public JobRecordService(JobRecordRepository jobRecordRepository, CacheService cacheService) {
+  public JobRecordService(RepositoriesFactory repositoriesFactory, CacheService cacheService) {
     this.cacheService = cacheService;
-    this.jobRecordRepository = jobRecordRepository;
+    this.jobRecordRepository = repositoriesFactory.getRepositories().jobRecordRepository();
   }
   
   public static String generateUniqueId() {

@@ -3,6 +3,7 @@ package org.rabix.engine.db;
 import java.util.Set;
 
 import org.rabix.engine.dao.JobBackendRepository;
+import org.rabix.engine.singleton.RepositoriesFactory;
 
 import com.google.inject.Inject;
 
@@ -11,8 +12,8 @@ public class JobBackendService {
   private JobBackendRepository jobBackendRepository;
   
   @Inject
-  public JobBackendService(JobBackendRepository jobBackendRepository) {
-    this.jobBackendRepository = jobBackendRepository;
+  public JobBackendService(RepositoriesFactory repositoriesFactory) {
+    this.jobBackendRepository = repositoriesFactory.getRepositories().jobBackendRepository();
   }
   
   public void insert(String jobId, String rootId, String backendId) {

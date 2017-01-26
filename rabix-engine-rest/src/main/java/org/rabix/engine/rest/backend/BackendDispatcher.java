@@ -16,10 +16,13 @@ import org.apache.commons.configuration.Configuration;
 import org.rabix.bindings.model.Job;
 import org.rabix.common.engine.control.EngineControlFreeMessage;
 import org.rabix.common.engine.control.EngineControlStopMessage;
+import org.rabix.engine.dao.Repositories;
+import org.rabix.engine.dao.Repositories.TransactionException;
 import org.rabix.engine.db.JobBackendService;
 import org.rabix.engine.db.JobBackendService.BackendJob;
 import org.rabix.engine.rest.backend.stub.BackendStub;
 import org.rabix.engine.rest.service.JobService;
+import org.rabix.engine.singleton.RepositoriesFactory;
 import org.rabix.transport.backend.Backend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,23 +50,26 @@ public class BackendDispatcher {
   private final JobService jobService;
   private final JobBackendService jobBackendService;
   
+  private final RepositoriesFactory repositoriesFactory;
+  
   @Inject
-  public BackendDispatcher(Configuration configuration, JobBackendService jobBackendService, JobService jobService) {
+  public BackendDispatcher(Configuration configuration, JobBackendService jobBackendService, JobService jobService, RepositoriesFactory repositoriesFactory) {
     this.jobService = jobService;
     this.jobBackendService = jobBackendService;
+    this.repositoriesFactory = repositoriesFactory;
     this.heartbeatPeriod = configuration.getLong("backend.cleaner.heartbeatPeriodMills", DEFAULT_HEARTBEAT_PERIOD);
     start();
   }
 
   private synchronized void start() {
-    executorService.scheduleAtFixedRate(new Runnable() {
-      @Override
-      public void run() {
-        schedule();
-      }
-    }, 0, 10, TimeUnit.SECONDS);
+//    executorService.scheduleAtFixedRate(new Runnable() {
+//      @Override
+//      public void run() {
+//        schedule();
+//      }
+//    }, 0, 10, TimeUnit.SECONDS);
 
-    heartbeatService.scheduleAtFixedRate(new HeartbeatMonitor(), 0, heartbeatPeriod, TimeUnit.MILLISECONDS);
+//    heartbeatService.scheduleAtFixedRate(new HeartbeatMonitor(), 0, heartbeatPeriod, TimeUnit.MILLISECONDS);
   }
 
   public void send(Job... jobs) {

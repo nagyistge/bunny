@@ -12,7 +12,7 @@ import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
-public interface AppRepository {
+public interface ApplicationRepository {
 
   @SqlUpdate("INSERT INTO APPLICATION (ID,APP) SELECT :id,:app WHERE NOT EXISTS (SELECT ID FROM APPLICATION WHERE ID=:id)")
   void insert(@Bind("id") String id, @BindJson("app") String app);
